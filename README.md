@@ -15,10 +15,10 @@ uv sync  # Install dependencies with uv
 ### 2. Play
 
 ```bash
-# Terminal
-uv run python one_shot_solitaire.py
+# Web UI
+uv run uvicorn web.server:app --reload
 
-# GUI
+# Pygame GUI
 uv run python one_shot_solitaire_gui.py
 ```
 
@@ -48,8 +48,10 @@ See [rules.md](rules.md) for the full rulebook.
 
 ```
 engine.py                 # Game logic (Card, OneShotSolitaire)
-one_shot_solitaire.py     # CLI player
 one_shot_solitaire_gui.py # Pygame GUI
+web/                      # Web UI (FastAPI + vanilla JS)
+  server.py               # Backend API
+  static/                 # Frontend (HTML, CSS, JS)
 rules.md                  # Full rulebook
 benchmark/                # LLM benchmark suite
   main.py                 # CLI entry point + argument parsing
@@ -92,8 +94,9 @@ make check           # py_compile syntax check
 
 | Component | Dependencies |
 |-----------|-------------|
-| Engine + CLI | None (stdlib only) |
-| GUI | `pygame` |
+| Engine | None (stdlib only) |
+| Web UI | `fastapi`, `uvicorn` |
+| Pygame GUI | `pygame` |
 | Benchmark | `openai` |
 | Dev | `pytest` |
 
