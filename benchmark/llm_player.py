@@ -34,7 +34,7 @@ STRATEGY TIPS:
 
 Respond with EXACTLY ONE command. No explanation, no extra text."""
 
-    def __init__(self, model="gpt-4o-mini", max_retries=3, reasoning_effort="low"):
+    def __init__(self, model="gpt-5-nano", max_retries=3, reasoning_effort="low"):
         self.client = openai.OpenAI()
         self.model = model
         self.max_retries = max_retries

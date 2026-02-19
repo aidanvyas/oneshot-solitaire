@@ -6,7 +6,7 @@ from benchmark.runner import BenchmarkRunner
 
 def main():
     parser = argparse.ArgumentParser(description="One-Pass Solitaire LLM Benchmark")
-    parser.add_argument("--model", default="gpt-4o-mini", help="OpenAI model to use")
+    parser.add_argument("--model", default="gpt-5-nano", help="OpenAI model to use")
     parser.add_argument("--games", type=int, default=10, help="Number of games to play")
     parser.add_argument("--seed", type=int, default=42, help="Starting seed")
     parser.add_argument("--max-moves", type=int, default=200, help="Max moves per game")

@@ -4,19 +4,35 @@ A challenging Klondike variant with one pass through the stock and 4 FreeCell-st
 
 ## Quick Start
 
+### 1. Clone and Install
+
 ```bash
-# 1. Clone and enter the repo
 git clone https://github.com/aidanvyas/oneshot-solitaire.git
 cd oneshot-solitaire
+uv sync  # Install dependencies with uv
+```
 
-# 2. Play in the terminal
+### 2. Play
+
+```bash
+# Terminal
 uv run python one_shot_solitaire.py
 
-# 3. Play with the GUI
+# GUI
 uv run python one_shot_solitaire_gui.py
+```
 
-# 4. Benchmark an LLM (requires OPENAI_API_KEY)
-uv run python -m benchmark --model gpt-4o-mini --games 10 --seed 42 --verbose
+### 3. Benchmark an LLM
+
+```bash
+# Set your OpenAI API key
+export OPENAI_API_KEY=your_api_key_here
+
+# Quick test (10 games, gpt-5-nano)
+uv run python -m benchmark --games 10 --seed 42 --verbose
+
+# Compare models
+uv run python -m benchmark --model o4-mini --games 10 --seed 42 --verbose
 ```
 
 ## Game Mechanics
@@ -49,12 +65,12 @@ tests/                    # 89 unit tests
 Run LLMs against the game via the OpenAI Responses API:
 
 ```bash
-uv run python -m benchmark --model gpt-4o-mini --games 10 --seed 42 --verbose
+uv run python -m benchmark --games 10 --seed 42 --verbose
 ```
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--model` | `gpt-4o-mini` | OpenAI model name |
+| `--model` | `gpt-5-nano` | OpenAI model name |
 | `--games` | `10` | Number of games to play |
 | `--seed` | `42` | Starting seed (increments per game) |
 | `--reasoning-effort` | `low` | `low`, `medium`, or `high` |

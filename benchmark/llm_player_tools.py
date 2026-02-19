@@ -114,7 +114,7 @@ Values: A, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K
 
 Use the provided tools to make your move. Call exactly one tool per turn."""
 
-    def __init__(self, model="gpt-4o-mini", max_retries=3, reasoning_effort="low"):
+    def __init__(self, model="gpt-5-nano", max_retries=3, reasoning_effort="low"):
         self.client = openai.OpenAI()
         self.model = model
         self.max_retries = max_retries

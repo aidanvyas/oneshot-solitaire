@@ -109,7 +109,7 @@ class BenchmarkResults:
 
 
 class BenchmarkRunner:
-    def __init__(self, model="gpt-4o-mini", games=10, start_seed=42,
+    def __init__(self, model="gpt-5-nano", games=10, start_seed=42,
                  max_moves=200, max_retries=3, reasoning_effort="low",
                  mode="text", verbose=False):
         self.model = model
