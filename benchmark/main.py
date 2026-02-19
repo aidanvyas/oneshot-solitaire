@@ -104,7 +104,8 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=str,
-        help="Save results to JSON file",
+        default="results/results.json",
+        help="Save results to JSON file (default: results/results.json)",
     )
 
     args = parser.parse_args()
@@ -128,7 +129,9 @@ def main() -> None:
     _print_results(results)
 
     if args.output:
-        with Path(args.output).open("w") as f:
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with output_path.open("w") as f:
             json.dump(results.to_dict(), f, indent=2)
         console.print(f"\nResults saved to {args.output}")
 

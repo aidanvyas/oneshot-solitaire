@@ -18,5 +18,8 @@ dist/
 *.swp
 *.swo
 
+# Results
+results/
+
 # OS
 .DS_Store

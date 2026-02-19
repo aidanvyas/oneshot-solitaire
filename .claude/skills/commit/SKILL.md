@@ -13,5 +13,6 @@ Steps:
 5. Write a concise commit message (1-2 sentences) that focuses on the "why" not the "what". Follow the style of recent commits.
 6. Commit with the message, appending: `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`
 7. Run `git status` to confirm the commit succeeded.
+8. Push to the remote with `git push`.
 
 If there are no changes to commit, say so and stop.
