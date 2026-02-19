@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "oneshot-solitaire"
+version = "0.1.0"
+description = "One-Pass Solitaire: a challenging Klondike variant with FreeCell-style storage, plus an LLM benchmark suite"
+readme = "README.md"
+requires-python = ">=3.14"
+license = "MIT"
+authors = [
+    { name = "Aidan Vyas", email = "68206970+aidanvyas@users.noreply.github.com" },
+]
+dependencies = [
+    "pygame>=2.1.0",
+    "openai",
+]
+
+[project.urls]
+Repository = "https://github.com/aidanvyas/oneshot-solitaire"
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["benchmark"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

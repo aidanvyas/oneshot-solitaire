@@ -2,14 +2,31 @@
 
 A challenging Klondike variant with one pass through the stock and 4 FreeCell-style storage slots, plus an LLM benchmark suite.
 
-## Overview
+## Quick Start
 
-One-Pass Solitaire follows standard Klondike rules with two twists: you only get **one pass** through the stock pile (no recycling), and you have **4 storage slots** where any single card can be temporarily stashed. The storage slots add strategic depth while the single pass makes the game significantly harder than standard Klondike.
+```bash
+# 1. Clone and enter the repo
+git clone https://github.com/aidanvyas/oneshot-solitaire.git
+cd oneshot-solitaire
 
-Three ways to play:
-- **CLI** — text-based terminal interface
-- **GUI** — pygame with drag-and-drop, hints, and a rules viewer
-- **Benchmark** — watch LLMs play via the OpenAI Responses API
+# 2. Play in the terminal
+uv run python one_shot_solitaire.py
+
+# 3. Play with the GUI
+uv run python one_shot_solitaire_gui.py
+
+# 4. Benchmark an LLM (requires OPENAI_API_KEY)
+uv run python -m benchmark --model gpt-4o-mini --games 10 --seed 42 --verbose
+```
+
+## Game Mechanics
+
+Standard Klondike with two key differences:
+
+1. **One pass** — you get a single pass through the stock pile. No recycling.
+2. **4 storage slots** — FreeCell-style slots where any single card can be temporarily stashed, adding strategic depth.
+
+See [rules.md](rules.md) for the full rulebook.
 
 ## Project Structure
 
@@ -27,39 +44,13 @@ benchmark/                # LLM benchmark suite
 tests/                    # 89 unit tests
 ```
 
-## Installation
+## Benchmark
+
+Run LLMs against the game via the OpenAI Responses API:
 
 ```bash
-pip install -r requirements.txt
+uv run python -m benchmark --model gpt-4o-mini --games 10 --seed 42 --verbose
 ```
-
-`pygame` is needed for the GUI and `openai` for the benchmark. The CLI and engine have no dependencies beyond the standard library.
-
-## Usage
-
-### CLI
-
-```bash
-python one_shot_solitaire.py
-```
-
-Commands: `d` draw, `f` foundation, `t <col>` tableau, `s <slot>` storage, `m <src> <dst>` move between tableau/storage, `q` quit, `r` reset, `h` help.
-
-### GUI
-
-```bash
-python one_shot_solitaire_gui.py
-```
-
-Drag-and-drop cards, click the stock to draw, and use the hint and rules buttons.
-
-### Benchmark
-
-```bash
-python -m benchmark --model gpt-4o-mini --games 10 --seed 42 --verbose
-```
-
-Key flags:
 
 | Flag | Default | Description |
 |------|---------|-------------|
@@ -76,13 +67,20 @@ Key flags:
 ## Testing
 
 ```bash
-python -m pytest tests/ -v
-make test    # runs unittest
-make check   # py_compile syntax check
+uv run pytest -v     # 89 unit tests
+make test            # same thing via Makefile
+make check           # py_compile syntax check
 ```
 
-## Game Rules
+## Dependencies
 
-See [rules.md](rules.md) for the full rulebook.
+| Component | Dependencies |
+|-----------|-------------|
+| Engine + CLI | None (stdlib only) |
+| GUI | `pygame` |
+| Benchmark | `openai` |
+| Dev | `pytest` |
 
-**Quick summary:** 7 tableau columns with cards built down in alternating colors. 4 foundation piles built up by suit from Ace to King. 4 storage slots that each hold any single card. One pass through the stock — no recycling.
+## License
+
+[MIT](LICENSE)
