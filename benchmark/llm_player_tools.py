@@ -1,29 +1,43 @@
+"""LLM player that uses OpenAI function-calling (tools) to play solitaire."""
+
+from __future__ import annotations
+
 import json
+
 import openai
 
+from benchmark.llm_player import _extract_token_usage
 
-TOOLS = [
+TOOLS: list[dict[str, object]] = [
     {
         "type": "function",
         "function": {
             "name": "draw",
             "description": "Draw a card from stock to waste",
-            "parameters": {"type": "object", "properties": {}, "required": []},
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
         },
     },
     {
         "type": "function",
         "function": {
             "name": "waste_to_foundation",
-            "description": "Move waste card to its foundation pile",
-            "parameters": {"type": "object", "properties": {}, "required": []},
+            "description": ("Move waste card to its foundation pile"),
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
         },
     },
     {
         "type": "function",
         "function": {
             "name": "waste_to_tableau",
-            "description": "Move waste card to a tableau column",
+            "description": ("Move waste card to a tableau column"),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -31,7 +45,7 @@ TOOLS = [
                         "type": "integer",
                         "minimum": 1,
                         "maximum": 7,
-                        "description": "Tableau column number (1-7)",
+                        "description": ("Tableau column number (1-7)"),
                     },
                 },
                 "required": ["column"],
@@ -42,7 +56,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "waste_to_storage",
-            "description": "Move waste card to a storage slot",
+            "description": ("Move waste card to a storage slot"),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -50,7 +64,7 @@ TOOLS = [
                         "type": "integer",
                         "minimum": 1,
                         "maximum": 4,
-                        "description": "Storage slot number (1-4)",
+                        "description": ("Storage slot number (1-4)"),
                     },
                 },
                 "required": ["slot"],
@@ -61,21 +75,50 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "move_card",
-            "description": "Move a card between tableau columns, storage slots, and foundations",
+            "description": (
+                "Move a card between tableau columns, storage slots, and foundations"
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "from_location": {
                         "type": "string",
-                        "enum": ["t1", "t2", "t3", "t4", "t5", "t6", "t7",
-                                 "s1", "s2", "s3", "s4"],
-                        "description": "Source: t1-t7 for tableau, s1-s4 for storage",
+                        "enum": [
+                            "t1",
+                            "t2",
+                            "t3",
+                            "t4",
+                            "t5",
+                            "t6",
+                            "t7",
+                            "s1",
+                            "s2",
+                            "s3",
+                            "s4",
+                        ],
+                        "description": ("Source: t1-t7 for tableau, s1-s4 for storage"),
                     },
                     "to_location": {
                         "type": "string",
-                        "enum": ["t1", "t2", "t3", "t4", "t5", "t6", "t7",
-                                 "s1", "s2", "s3", "s4", "f"],
-                        "description": "Destination: t1-t7 for tableau, s1-s4 for storage, f for foundation",
+                        "enum": [
+                            "t1",
+                            "t2",
+                            "t3",
+                            "t4",
+                            "t5",
+                            "t6",
+                            "t7",
+                            "s1",
+                            "s2",
+                            "s3",
+                            "s4",
+                            "f",
+                        ],
+                        "description": (
+                            "Destination: t1-t7 for tableau,"
+                            " s1-s4 for storage,"
+                            " f for foundation"
+                        ),
                     },
                 },
                 "required": ["from_location", "to_location"],
@@ -85,81 +128,91 @@ TOOLS = [
 ]
 
 
-def tool_call_to_text(name, args):
-    """Convert a tool call into the text command format the game engine expects."""
+def tool_call_to_text(
+    name: str,
+    args: dict[str, object],
+) -> str | None:
+    """Convert a tool call into the text command format the engine expects."""
     if name == "draw":
         return "d"
-    elif name == "waste_to_foundation":
+    if name == "waste_to_foundation":
         return "f"
-    elif name == "waste_to_tableau":
+    if name == "waste_to_tableau":
         return f"t {args['column']}"
-    elif name == "waste_to_storage":
+    if name == "waste_to_storage":
         return f"s {args['slot']}"
-    elif name == "move_card":
+    if name == "move_card":
         return f"m {args['from_location']} {args['to_location']}"
     return None
 
 
+_SYSTEM_PROMPT = (
+    "You are playing One-Pass Solitaire.\n"
+    "\n"
+    "RULES:\n"
+    "- 7 tableau columns: build DOWN in ALTERNATING colors "
+    "(red on black, black on red). "
+    "Only Kings on empty columns.\n"
+    "- 4 foundations: build UP by suit from Ace to King.\n"
+    "- 4 storage spaces: each holds exactly one card.\n"
+    "- Stock pile: draw one card at a time to waste. "
+    "ONE PASS ONLY.\n"
+    "\n"
+    "CARD FORMAT: Suit letter + value. "
+    "S=Spades(black), C=Clubs(black), "
+    "H=Hearts(red), D=Diamonds(red).\n"
+    "Values: A, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K\n"
+    "\n"
+    "Use the provided tools to make your move. "
+    "Call exactly one tool per turn."
+)
+
+
 class ToolCallPlayer:
-    SYSTEM_PROMPT = """You are playing One-Pass Solitaire.
+    """Function-calling LLM player using the OpenAI Responses API."""
 
-RULES:
-- 7 tableau columns: build DOWN in ALTERNATING colors (red on black, black on red). Only Kings on empty columns.
-- 4 foundations: build UP by suit from Ace to King.
-- 4 storage spaces: each holds exactly one card.
-- Stock pile: draw one card at a time to waste. ONE PASS ONLY.
+    SYSTEM_PROMPT = _SYSTEM_PROMPT
 
-CARD FORMAT: Suit letter + value. S=Spades(black), C=Clubs(black), H=Hearts(red), D=Diamonds(red).
-Values: A, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K
-
-Use the provided tools to make your move. Call exactly one tool per turn."""
-
-    def __init__(self, model="gpt-5-nano", max_retries=3, reasoning_effort="low"):
+    def __init__(
+        self,
+        model: str = "gpt-5-nano",
+        max_retries: int = 3,
+        reasoning_effort: str = "low",
+    ) -> None:
+        """Initialize the tool-calling player with model configuration."""
         self.client = openai.OpenAI()
         self.model = model
         self.max_retries = max_retries
         self.reasoning_effort = reasoning_effort
-        self.previous_response_id = None
+        self.previous_response_id: str | None = None
 
-    def get_move(self, game_state_text, error_feedback=None):
+    def get_move(
+        self,
+        game_state_text: str,
+        error_feedback: str | None = None,
+    ) -> tuple[str | None, dict[str, int]]:
+        """Request a move via function calling given the game state."""
         if error_feedback:
             user_input = f"Invalid move. {error_feedback}\n\n{game_state_text}"
         else:
             user_input = game_state_text
 
-        kwargs = dict(
-            model=self.model,
-            instructions=self.SYSTEM_PROMPT,
-            input=user_input,
-            tools=TOOLS,
-            tool_choice="required",
-            previous_response_id=self.previous_response_id,
-        )
+        kwargs: dict[str, object] = {
+            "model": self.model,
+            "instructions": self.SYSTEM_PROMPT,
+            "input": user_input,
+            "tools": TOOLS,
+            "tool_choice": "required",
+            "previous_response_id": self.previous_response_id,
+        }
         if self.reasoning_effort:
             kwargs["reasoning"] = {"effort": self.reasoning_effort}
 
         response = self.client.responses.create(**kwargs)
         self.previous_response_id = response.id
 
-        # Extract token usage
-        usage = response.usage
-        input_tokens = getattr(usage, "input_tokens", 0) or 0
-        output_tokens = getattr(usage, "output_tokens", 0) or 0
+        token_usage = _extract_token_usage(response.usage)
 
-        input_details = getattr(usage, "input_tokens_details", None)
-        cached_input_tokens = getattr(input_details, "cached_tokens", 0) or 0 if input_details else 0
-
-        output_details = getattr(usage, "output_tokens_details", None)
-        reasoning_tokens = getattr(output_details, "reasoning_tokens", 0) or 0 if output_details else 0
-
-        token_usage = {
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "cached_input_tokens": cached_input_tokens,
-            "reasoning_tokens": reasoning_tokens,
-        }
-
-        # Find the function call in the response output
         for item in response.output:
             if item.type == "function_call":
                 args = json.loads(item.arguments) if item.arguments else {}
@@ -167,8 +220,8 @@ Use the provided tools to make your move. Call exactly one tool per turn."""
                 if text_cmd:
                     return text_cmd, token_usage
 
-        # Fallback: no tool call found
         return None, token_usage
 
-    def reset(self):
+    def reset(self) -> None:
+        """Clear conversation history for a new game."""
         self.previous_response_id = None

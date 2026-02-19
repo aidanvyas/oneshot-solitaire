@@ -1,9 +1,15 @@
+"""Tests for new engine methods: legal_moves, is_game_over, state_hash, is_endgame."""
+
 import unittest
-from engine import Card, OnePassSolitaire, SUITS
+
+from engine import SUITS, Card, OnePassSolitaire
 
 
 class TestLegalMoves(unittest.TestCase):
-    def _empty_game(self):
+    """Tests for the legal_moves method."""
+
+    def _empty_game(self) -> OnePassSolitaire:
+        """Create an empty game state for testing."""
         game = OnePassSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
@@ -12,129 +18,143 @@ class TestLegalMoves(unittest.TestCase):
         game.waste = []
         return game
 
-    def test_draw_available_when_stock_not_empty(self):
+    def test_draw_available_when_stock_not_empty(self) -> None:
+        """Draw should be available when stock has cards."""
         game = self._empty_game()
-        game.stock = [Card('♠', '5')]
+        game.stock = [Card("\u2660", "5")]
         moves = game.legal_moves()
-        self.assertIn('draw', moves)
+        assert "draw" in moves
 
-    def test_draw_not_available_when_stock_empty(self):
+    def test_draw_not_available_when_stock_empty(self) -> None:
+        """Draw should not be available when stock is empty."""
         game = self._empty_game()
         moves = game.legal_moves()
-        self.assertNotIn('draw', moves)
+        assert "draw" not in moves
 
-    def test_foundation_move_from_waste(self):
+    def test_foundation_move_from_waste(self) -> None:
+        """Foundation move should be available for ace on waste."""
         game = self._empty_game()
-        game.waste = [Card('♠', 'A', face_up=True)]
+        game.waste = [Card("\u2660", "A", face_up=True)]
         moves = game.legal_moves()
-        self.assertIn('foundation', moves)
+        assert "foundation" in moves
 
-    def test_waste_to_tableau(self):
+    def test_waste_to_tableau(self) -> None:
+        """Waste card should be movable to valid tableau column."""
         game = self._empty_game()
-        game.waste = [Card('♥', '5', face_up=True)]
-        game.tableau[0] = [Card('♠', '6', face_up=True)]
+        game.waste = [Card("\u2665", "5", face_up=True)]
+        game.tableau[0] = [Card("\u2660", "6", face_up=True)]
         moves = game.legal_moves()
-        self.assertIn(('tableau', 0), moves)
+        assert ("tableau", 0) in moves
 
-    def test_waste_to_storage(self):
+    def test_waste_to_storage(self) -> None:
+        """Waste card should be movable to first empty storage slot."""
         game = self._empty_game()
-        game.waste = [Card('♠', '5', face_up=True)]
+        game.waste = [Card("\u2660", "5", face_up=True)]
         moves = game.legal_moves()
-        # Should have exactly one storage move (first empty slot)
-        storage_moves = [m for m in moves if isinstance(m, tuple) and m[0] == 'storage']
-        self.assertEqual(len(storage_moves), 1)
-        self.assertEqual(storage_moves[0], ('storage', 0))
+        storage_moves = [m for m in moves if isinstance(m, tuple) and m[0] == "storage"]
+        assert len(storage_moves) == 1
+        assert storage_moves[0] == ("storage", 0)
 
-    def test_tableau_to_tableau(self):
+    def test_tableau_to_tableau(self) -> None:
+        """Tableau card should be movable to valid tableau column."""
         game = self._empty_game()
-        game.tableau[0] = [Card('♥', '5', face_up=True)]
-        game.tableau[1] = [Card('♠', '6', face_up=True)]
+        game.tableau[0] = [Card("\u2665", "5", face_up=True)]
+        game.tableau[1] = [Card("\u2660", "6", face_up=True)]
         moves = game.legal_moves()
-        self.assertIn(('move', ('tableau', 0), ('tableau', 1)), moves)
+        assert ("move", ("tableau", 0), ("tableau", 1)) in moves
 
-    def test_tableau_to_foundation(self):
+    def test_tableau_to_foundation(self) -> None:
+        """Tableau ace should be movable to foundation."""
         game = self._empty_game()
-        game.tableau[0] = [Card('♠', 'A', face_up=True)]
+        game.tableau[0] = [Card("\u2660", "A", face_up=True)]
         moves = game.legal_moves()
-        spade_idx = SUITS.index('♠')
-        self.assertIn(('move', ('tableau', 0), ('foundation', spade_idx)), moves)
+        spade_idx = SUITS.index("\u2660")
+        assert ("move", ("tableau", 0), ("foundation", spade_idx)) in moves
 
-    def test_tableau_to_storage(self):
+    def test_tableau_to_storage(self) -> None:
+        """Tableau card should be movable to empty storage."""
         game = self._empty_game()
-        game.tableau[0] = [Card('♠', '5', face_up=True)]
+        game.tableau[0] = [Card("\u2660", "5", face_up=True)]
         moves = game.legal_moves()
-        storage_moves = [m for m in moves if isinstance(m, tuple) and m[0] == 'move'
-                         and m[2][0] == 'storage']
-        self.assertTrue(len(storage_moves) >= 1)
+        storage_moves = [
+            m
+            for m in moves
+            if isinstance(m, tuple) and m[0] == "move" and m[2][0] == "storage"
+        ]
+        assert len(storage_moves) >= 1
 
-    def test_storage_to_foundation(self):
+    def test_storage_to_foundation(self) -> None:
+        """Storage ace should be movable to foundation."""
         game = self._empty_game()
-        game.storage[2] = Card('♥', 'A', face_up=True)
+        game.storage[2] = Card("\u2665", "A", face_up=True)
         moves = game.legal_moves()
-        heart_idx = SUITS.index('♥')
-        self.assertIn(('move', ('storage', 2), ('foundation', heart_idx)), moves)
+        heart_idx = SUITS.index("\u2665")
+        assert ("move", ("storage", 2), ("foundation", heart_idx)) in moves
 
-    def test_storage_to_tableau(self):
+    def test_storage_to_tableau(self) -> None:
+        """Storage card should be movable to valid tableau column."""
         game = self._empty_game()
-        game.storage[1] = Card('♦', '5', face_up=True)
-        game.tableau[0] = [Card('♣', '6', face_up=True)]
+        game.storage[1] = Card("\u2666", "5", face_up=True)
+        game.tableau[0] = [Card("\u2663", "6", face_up=True)]
         moves = game.legal_moves()
-        self.assertIn(('move', ('storage', 1), ('tableau', 0)), moves)
+        assert ("move", ("storage", 1), ("tableau", 0)) in moves
 
-    def test_legal_moves_includes_storage_when_slots_empty(self):
+    def test_legal_moves_includes_storage_when_slots_empty(self) -> None:
         """Regression: is_game_over must not miss storage as a valid destination."""
         game = self._empty_game()
-        # Place cards that can't go to foundation or tableau but CAN go to storage
-        game.tableau[0] = [Card('♥', '4', face_up=True)]
-        game.tableau[1] = [Card('♥', '7', face_up=True)]
+        game.tableau[0] = [Card("\u2665", "4", face_up=True)]
+        game.tableau[1] = [Card("\u2665", "7", face_up=True)]
         game.storage = [None, None, None, None]
         moves = game.legal_moves()
-        # Should include storage moves for both tableau cards
-        storage_moves = [m for m in moves if isinstance(m, tuple) and m[0] == 'move'
-                         and m[2][0] == 'storage']
-        self.assertTrue(len(storage_moves) >= 1)
+        storage_moves = [
+            m
+            for m in moves
+            if isinstance(m, tuple) and m[0] == "move" and m[2][0] == "storage"
+        ]
+        assert len(storage_moves) >= 1
 
-    def test_no_moves_on_truly_dead_board(self):
+    def test_no_moves_on_truly_dead_board(self) -> None:
+        """Board with no valid moves should return empty list."""
         game = self._empty_game()
-        # All red cards, no alternating possible, all storage full, no foundation moves
         red_cards = [
-            Card('♥', '4', face_up=True),
-            Card('♦', '7', face_up=True),
-            Card('♥', '9', face_up=True),
-            Card('♦', 'J', face_up=True),
-            Card('♥', 'Q', face_up=True),
-            Card('♦', '6', face_up=True),
-            Card('♥', '8', face_up=True),
+            Card("\u2665", "4", face_up=True),
+            Card("\u2666", "7", face_up=True),
+            Card("\u2665", "9", face_up=True),
+            Card("\u2666", "J", face_up=True),
+            Card("\u2665", "Q", face_up=True),
+            Card("\u2666", "6", face_up=True),
+            Card("\u2665", "8", face_up=True),
         ]
         for i in range(7):
             game.tableau[i] = [red_cards[i]]
         game.storage = [
-            Card('♦', '5', face_up=True),
-            Card('♥', '10', face_up=True),
-            Card('♦', 'K', face_up=True),
-            Card('♥', '7', face_up=True),
+            Card("\u2666", "5", face_up=True),
+            Card("\u2665", "10", face_up=True),
+            Card("\u2666", "K", face_up=True),
+            Card("\u2665", "7", face_up=True),
         ]
         moves = game.legal_moves()
-        self.assertEqual(len(moves), 0)
+        assert len(moves) == 0
 
-    def test_all_legal_moves_are_executable(self):
+    def test_all_legal_moves_are_executable(self) -> None:
         """Every move from legal_moves() should succeed in step()."""
         game = OnePassSolitaire(seed=42)
-        # Draw a few cards to create some state
         for _ in range(5):
-            game.step('draw', auto_move=False)
+            game.step("draw", auto_move=False)
         moves = game.legal_moves()
         for move in moves:
-            # Clone the game state to test each move independently
             test_game = OnePassSolitaire(seed=42)
             for _ in range(5):
-                test_game.step('draw', auto_move=False)
+                test_game.step("draw", auto_move=False)
             success, err = test_game.step(move, auto_move=False)
-            self.assertTrue(success, f"Move {move} should be legal but got error: {err}")
+            assert success, f"Move {move} should be legal but got error: {err}"
 
 
 class TestIsGameOver(unittest.TestCase):
-    def _empty_game(self):
+    """Tests for the is_game_over method."""
+
+    def _empty_game(self) -> OnePassSolitaire:
+        """Create an empty game state for testing."""
         game = OnePassSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
@@ -143,71 +163,82 @@ class TestIsGameOver(unittest.TestCase):
         game.waste = []
         return game
 
-    def test_game_over_when_no_moves(self):
+    def test_game_over_when_no_moves(self) -> None:
+        """Game should be over when no legal moves exist."""
         game = self._empty_game()
         red_cards = [
-            Card('♥', '4', face_up=True),
-            Card('♦', '7', face_up=True),
-            Card('♥', '9', face_up=True),
-            Card('♦', 'J', face_up=True),
-            Card('♥', 'Q', face_up=True),
-            Card('♦', '6', face_up=True),
-            Card('♥', '8', face_up=True),
+            Card("\u2665", "4", face_up=True),
+            Card("\u2666", "7", face_up=True),
+            Card("\u2665", "9", face_up=True),
+            Card("\u2666", "J", face_up=True),
+            Card("\u2665", "Q", face_up=True),
+            Card("\u2666", "6", face_up=True),
+            Card("\u2665", "8", face_up=True),
         ]
         for i in range(7):
             game.tableau[i] = [red_cards[i]]
         game.storage = [
-            Card('♦', '5', face_up=True),
-            Card('♥', '10', face_up=True),
-            Card('♦', 'K', face_up=True),
-            Card('♥', '7', face_up=True),
+            Card("\u2666", "5", face_up=True),
+            Card("\u2665", "10", face_up=True),
+            Card("\u2666", "K", face_up=True),
+            Card("\u2665", "7", face_up=True),
         ]
-        self.assertTrue(game.is_game_over())
+        assert game.is_game_over()
 
-    def test_not_game_over_with_empty_storage(self):
-        """If storage has an empty slot and there are cards to move, game is NOT over."""
+    def test_not_game_over_with_empty_storage(self) -> None:
+        """Game is NOT over if storage has empty slots and cards exist."""
         game = self._empty_game()
-        game.tableau[0] = [Card('♠', '9', face_up=True)]
+        game.tableau[0] = [Card("\u2660", "9", face_up=True)]
         game.storage = [None, None, None, None]
-        self.assertFalse(game.is_game_over())
+        assert not game.is_game_over()
 
-    def test_not_game_over_with_stock(self):
+    def test_not_game_over_with_stock(self) -> None:
+        """Game should not be over when stock has cards."""
         game = self._empty_game()
-        game.stock = [Card('♠', '2')]
-        self.assertFalse(game.is_game_over())
+        game.stock = [Card("\u2660", "2")]
+        assert not game.is_game_over()
 
-    def test_game_over_on_empty_board(self):
+    def test_game_over_on_empty_board(self) -> None:
         """Empty board with nothing to do is game over (also means game is won)."""
         game = self._empty_game()
-        self.assertTrue(game.is_game_over())
+        assert game.is_game_over()
 
 
 class TestStateHash(unittest.TestCase):
-    def test_same_state_same_hash(self):
+    """Tests for the state_hash method."""
+
+    def test_same_state_same_hash(self) -> None:
+        """Same seed should produce same hash."""
         game1 = OnePassSolitaire(seed=42)
         game2 = OnePassSolitaire(seed=42)
-        self.assertEqual(game1.state_hash(), game2.state_hash())
+        assert game1.state_hash() == game2.state_hash()
 
-    def test_different_state_different_hash(self):
+    def test_different_state_different_hash(self) -> None:
+        """Different states should produce different hashes."""
         game1 = OnePassSolitaire(seed=42)
         game2 = OnePassSolitaire(seed=42)
-        game2.step('draw')
-        self.assertNotEqual(game1.state_hash(), game2.state_hash())
+        game2.step("draw")
+        assert game1.state_hash() != game2.state_hash()
 
-    def test_hash_changes_after_move(self):
+    def test_hash_changes_after_move(self) -> None:
+        """Hash should change after a move."""
         game = OnePassSolitaire(seed=42)
         h1 = game.state_hash()
-        game.step('draw')
+        game.step("draw")
         h2 = game.state_hash()
-        self.assertNotEqual(h1, h2)
+        assert h1 != h2
 
-    def test_hash_is_int(self):
+    def test_hash_is_int(self) -> None:
+        """Hash should be an integer."""
         game = OnePassSolitaire(seed=42)
-        self.assertIsInstance(game.state_hash(), int)
+        assert isinstance(game.state_hash(), int)
 
 
 class TestIsEndgame(unittest.TestCase):
-    def _empty_game(self):
+    """Tests for the is_endgame method."""
+
+    def _empty_game(self) -> OnePassSolitaire:
+        """Create an empty game state for testing."""
         game = OnePassSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
@@ -216,51 +247,65 @@ class TestIsEndgame(unittest.TestCase):
         game.waste = []
         return game
 
-    def test_endgame_when_stock_empty_all_face_up(self):
+    def test_endgame_when_stock_empty_all_face_up(self) -> None:
+        """Endgame should be true when stock is empty and all cards face up."""
         game = self._empty_game()
-        game.tableau[0] = [Card('♠', 'K', face_up=True), Card('♥', 'Q', face_up=True)]
-        self.assertTrue(game.is_endgame())
+        game.tableau[0] = [
+            Card("\u2660", "K", face_up=True),
+            Card("\u2665", "Q", face_up=True),
+        ]
+        assert game.is_endgame()
 
-    def test_not_endgame_when_stock_has_cards(self):
+    def test_not_endgame_when_stock_has_cards(self) -> None:
+        """Endgame should be false when stock has cards."""
         game = self._empty_game()
-        game.stock = [Card('♠', '5')]
-        game.tableau[0] = [Card('♠', 'K', face_up=True)]
-        self.assertFalse(game.is_endgame())
+        game.stock = [Card("\u2660", "5")]
+        game.tableau[0] = [Card("\u2660", "K", face_up=True)]
+        assert not game.is_endgame()
 
-    def test_not_endgame_when_face_down_cards(self):
+    def test_not_endgame_when_face_down_cards(self) -> None:
+        """Endgame should be false when face-down cards exist."""
         game = self._empty_game()
-        game.tableau[0] = [Card('♠', 'K', face_up=False), Card('♥', 'Q', face_up=True)]
-        self.assertFalse(game.is_endgame())
+        game.tableau[0] = [
+            Card("\u2660", "K", face_up=False),
+            Card("\u2665", "Q", face_up=True),
+        ]
+        assert not game.is_endgame()
 
-    def test_endgame_on_empty_tableau(self):
+    def test_endgame_on_empty_tableau(self) -> None:
+        """Endgame should be true on empty tableau with empty stock."""
         game = self._empty_game()
-        self.assertTrue(game.is_endgame())
+        assert game.is_endgame()
 
 
 class TestStepAutoMoveParam(unittest.TestCase):
-    def test_auto_move_true_moves_ace_to_foundation(self):
-        game = OnePassSolitaire(seed=1)
-        game.tableau = [[] for _ in range(7)]
-        game.foundations = [[] for _ in range(4)]
-        game.storage = [None] * 4
-        game.waste = []
-        game.stock = [Card('♠', 'A')]
-        game.step('draw', auto_move=True)
-        spade_idx = SUITS.index('♠')
-        self.assertEqual(len(game.foundations[spade_idx]), 1)
+    """Tests for the auto_move parameter of step()."""
 
-    def test_auto_move_false_leaves_ace_in_waste(self):
+    def test_auto_move_true_moves_ace_to_foundation(self) -> None:
+        """Auto-move should move ace to foundation after draw."""
         game = OnePassSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
         game.waste = []
-        game.stock = [Card('♠', 'A')]
-        game.step('draw', auto_move=False)
-        spade_idx = SUITS.index('♠')
-        self.assertEqual(len(game.foundations[spade_idx]), 0)
-        self.assertEqual(len(game.waste), 1)
-        self.assertEqual(game.waste[0].value, 'A')
+        game.stock = [Card("\u2660", "A")]
+        game.step("draw", auto_move=True)
+        spade_idx = SUITS.index("\u2660")
+        assert len(game.foundations[spade_idx]) == 1
+
+    def test_auto_move_false_leaves_ace_in_waste(self) -> None:
+        """Disabling auto-move should leave ace in waste."""
+        game = OnePassSolitaire(seed=1)
+        game.tableau = [[] for _ in range(7)]
+        game.foundations = [[] for _ in range(4)]
+        game.storage = [None] * 4
+        game.waste = []
+        game.stock = [Card("\u2660", "A")]
+        game.step("draw", auto_move=False)
+        spade_idx = SUITS.index("\u2660")
+        assert len(game.foundations[spade_idx]) == 0
+        assert len(game.waste) == 1
+        assert game.waste[0].value == "A"
 
 
 if __name__ == "__main__":

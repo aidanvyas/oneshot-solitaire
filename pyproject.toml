@@ -15,6 +15,7 @@ authors = [
 dependencies = [
     "pygame>=2.1.0",
     "openai",
+    "rich",
 ]
 
 [project.urls]
@@ -27,6 +28,15 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["benchmark"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "S101",    # assert in tests — pytest convention
+    "S311",    # random — this is a card game, not crypto
+    "D203",    # conflicts with D211
+    "D213",    # conflicts with D212
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

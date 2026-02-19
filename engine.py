@@ -1,45 +1,66 @@
+"""One-Pass Solitaire game engine."""
+
+from __future__ import annotations
+
 import random
 
 # Card suits, values and colors
-SUITS = ['♠', '♥', '♦', '♣']
-VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-COLORS = {'♠': 'black', '♣': 'black', '♥': 'red', '♦': 'red'}
+SUITS = ["♠", "♥", "♦", "♣"]
+VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+COLORS = {"♠": "black", "♣": "black", "♥": "red", "♦": "red"}
+
+NUM_TABLEAU_COLS = 7
+NUM_STORAGE_SLOTS = 4
+NUM_FOUNDATION_PILES = 4
+FULL_DECK_SIZE = 52
+CARDS_PER_SUIT = 13
 
 
 class Card:
-    def __init__(self, suit, value, face_up=False):
+    """A playing card with suit, value, and face-up state."""
+
+    def __init__(self, suit: str, value: str, *, face_up: bool = False) -> None:
+        """Initialize a card."""
         self.suit = suit
         self.value = value
         self.face_up = face_up
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Return string representation of the card."""
         if not self.face_up:
             return "🂠"
         return f"{self.suit}{self.value}"
 
-    def get_color(self):
+    def get_color(self) -> str:
+        """Return the color of the card ('red' or 'black')."""
         return COLORS[self.suit]
 
-    def get_value_index(self):
+    def get_value_index(self) -> int:
+        """Return the index of the card value in VALUES."""
         return VALUES.index(self.value)
 
-    def flip(self):
+    def flip(self) -> Card:
+        """Flip the card face-up/face-down and return self."""
         self.face_up = not self.face_up
         return self
 
 
 class OnePassSolitaire:
-    def __init__(self, seed=None):
+    """One-pass solitaire game with FreeCell-style storage slots."""
+
+    def __init__(self, seed: int | None = None) -> None:
+        """Initialize a new game with an optional seed for deterministic deals."""
         self.seed = seed
         self.reset_game()
 
-    def reset_game(self):
-        self.tableau = [[] for _ in range(7)]
-        self.foundations = [[] for _ in range(4)]
-        self.storage = [None] * 4
-        self.stock = []
-        self.waste = []
-        self.moved_card = None
+    def reset_game(self) -> None:
+        """Reset the game to a fresh deal."""
+        self.tableau: list[list[Card]] = [[] for _ in range(NUM_TABLEAU_COLS)]
+        self.foundations: list[list[Card]] = [[] for _ in range(NUM_FOUNDATION_PILES)]
+        self.storage: list[Card | None] = [None] * NUM_STORAGE_SLOTS
+        self.stock: list[Card] = []
+        self.waste: list[Card] = []
+        self.moved_card: Card | None = None
 
         deck = [Card(suit, value) for suit in SUITS for value in VALUES]
         if self.seed is not None:
@@ -47,7 +68,7 @@ class OnePassSolitaire:
         else:
             random.shuffle(deck)
 
-        for col in range(7):
+        for col in range(NUM_TABLEAU_COLS):
             for row in range(col + 1):
                 card = deck.pop()
                 if row == col:
@@ -56,280 +77,395 @@ class OnePassSolitaire:
 
         self.stock = deck
 
-    def is_valid_tableau_move(self, card, destination_col):
-        if destination_col < 0 or destination_col >= 7:
+    def is_valid_tableau_move(self, card: Card, destination_col: int) -> bool:
+        """Check if a card can be placed on a tableau column."""
+        if destination_col < 0 or destination_col >= NUM_TABLEAU_COLS:
             return False
         if not self.tableau[destination_col]:
-            return card.value == 'K'
+            return card.value == "K"
         top_card = self.tableau[destination_col][-1]
         if not top_card.face_up:
             return False
-        return (card.get_color() != top_card.get_color() and
-                card.get_value_index() == top_card.get_value_index() - 1)
+        return (
+            card.get_color() != top_card.get_color()
+            and card.get_value_index() == top_card.get_value_index() - 1
+        )
 
-    def is_valid_foundation_move(self, card, foundation_idx):
+    def is_valid_foundation_move(self, card: Card, foundation_idx: int) -> bool:
+        """Check if a card can be placed on a foundation pile."""
         foundation = self.foundations[foundation_idx]
         suit_index = SUITS.index(card.suit)
         if foundation_idx != suit_index:
             return False
         if not foundation:
-            return card.value == 'A'
+            return card.value == "A"
         top_card = foundation[-1]
-        return (card.suit == top_card.suit and
-                card.get_value_index() == top_card.get_value_index() + 1)
+        return (
+            card.suit == top_card.suit
+            and card.get_value_index() == top_card.get_value_index() + 1
+        )
 
-    def auto_move_to_foundation(self):
-        """Automatically move eligible cards to foundations where possible."""
-        moved = True
-        while moved:
-            moved = False
-
-            for col_idx, column in enumerate(self.tableau):
-                if column and column[-1].face_up:
-                    card = column[-1]
-                    foundation_idx = SUITS.index(card.suit)
-                    if self.is_valid_foundation_move(card, foundation_idx):
-                        self.foundations[foundation_idx].append(column.pop())
-                        if column and not column[-1].face_up:
-                            column[-1].flip()
-                        moved = True
-                        break
-
-            if not moved:
-                for storage_idx, card in enumerate(self.storage):
-                    if card:
-                        foundation_idx = SUITS.index(card.suit)
-                        if self.is_valid_foundation_move(card, foundation_idx):
-                            self.foundations[foundation_idx].append(card)
-                            self.storage[storage_idx] = None
-                            moved = True
-                            break
-
-            if not moved and self.waste:
-                card = self.waste[-1]
+    def _auto_move_tableau(self) -> bool:
+        """Try to auto-move a tableau top card to its foundation."""
+        for _col_idx, column in enumerate(self.tableau):
+            if column and column[-1].face_up:
+                card = column[-1]
                 foundation_idx = SUITS.index(card.suit)
                 if self.is_valid_foundation_move(card, foundation_idx):
-                    self.foundations[foundation_idx].append(self.waste.pop())
-                    moved = True
+                    self.foundations[foundation_idx].append(column.pop())
+                    if column and not column[-1].face_up:
+                        column[-1].flip()
+                    return True
+        return False
 
-    def foundation_count(self):
-        return sum(len(pile) for pile in self.foundations)
+    def _auto_move_storage(self) -> bool:
+        """Try to auto-move a storage card to its foundation."""
+        for storage_idx, card in enumerate(self.storage):
+            if card:
+                foundation_idx = SUITS.index(card.suit)
+                if self.is_valid_foundation_move(card, foundation_idx):
+                    self.foundations[foundation_idx].append(card)
+                    self.storage[storage_idx] = None
+                    return True
+        return False
 
-    def step(self, move, auto_move=True):
-        """Execute a move. Returns (success, error_message)."""
-        if move == 'draw':
-            if not self.stock:
-                return (False, "No more cards in the stock pile")
-            card = self.stock.pop()
-            card.face_up = True
-            self.waste.append(card)
-            if auto_move:
-                self.auto_move_to_foundation()
-            return (True, None)
-
-        elif move == 'foundation':
-            if not self.waste:
-                return (False, "No card to move")
-            card = self.waste[-1]
-            for i, suit in enumerate(SUITS):
-                if card.suit == suit and self.is_valid_foundation_move(card, i):
-                    self.foundations[i].append(self.waste.pop())
-                    if auto_move:
-                        self.auto_move_to_foundation()
-                    return (True, None)
-            return (False, "Cannot move this card to any foundation pile")
-
-        elif isinstance(move, tuple) and move[0] == 'tableau':
-            if not self.waste:
-                return (False, "No card to move")
-            col = move[1]
-            card = self.waste[-1]
-            if self.is_valid_tableau_move(card, col):
-                self.tableau[col].append(self.waste.pop())
-                if auto_move:
-                    self.auto_move_to_foundation()
-                return (True, None)
-            else:
-                return (False, "Invalid move to tableau")
-
-        elif isinstance(move, tuple) and move[0] == 'storage':
-            if not self.waste:
-                return (False, "No card to move")
-            space = move[1]
-            if space < 0 or space >= 4:
-                return (False, "Invalid storage space")
-            if self.storage[space] is None:
-                self.storage[space] = self.waste.pop()
-                if auto_move:
-                    self.auto_move_to_foundation()
-                return (True, None)
-            else:
-                return (False, "Storage space is already occupied")
-
-        elif isinstance(move, tuple) and move[0] == 'move':
-            source = move[1]
-            destination = move[2]
-
-            card = None
-            if source[0] == 'tableau':
-                col = source[1]
-                if 0 <= col < 7 and self.tableau[col] and self.tableau[col][-1].face_up:
-                    card = self.tableau[col][-1]
-                else:
-                    return (False, "No face-up card in that tableau column")
-            elif source[0] == 'storage':
-                space = source[1]
-                if 0 <= space < 4 and self.storage[space]:
-                    card = self.storage[space]
-                else:
-                    return (False, "No card in that storage space")
-            else:
-                return (False, "Invalid source")
-
-            if destination[0] == 'tableau':
-                col = destination[1]
-                if self.is_valid_tableau_move(card, col):
-                    if source[0] == 'tableau':
-                        self.tableau[col].append(self.tableau[source[1]].pop())
-                        if self.tableau[source[1]] and not self.tableau[source[1]][-1].face_up:
-                            self.tableau[source[1]][-1].flip()
-                    else:
-                        self.tableau[col].append(self.storage[source[1]])
-                        self.storage[source[1]] = None
-                    if auto_move:
-                        self.auto_move_to_foundation()
-                    return (True, None)
-                else:
-                    return (False, "Invalid tableau move")
-            elif destination[0] == 'storage':
-                space = destination[1]
-                if self.storage[space] is None:
-                    if source[0] == 'tableau':
-                        self.storage[space] = self.tableau[source[1]].pop()
-                        if self.tableau[source[1]] and not self.tableau[source[1]][-1].face_up:
-                            self.tableau[source[1]][-1].flip()
-                    else:
-                        self.storage[space] = self.storage[source[1]]
-                        self.storage[source[1]] = None
-                    if auto_move:
-                        self.auto_move_to_foundation()
-                    return (True, None)
-                else:
-                    return (False, "Storage space is already occupied")
-            elif destination[0] == 'foundation':
-                suit_idx = SUITS.index(card.suit)
-                if self.is_valid_foundation_move(card, suit_idx):
-                    if source[0] == 'tableau':
-                        self.foundations[suit_idx].append(self.tableau[source[1]].pop())
-                        if self.tableau[source[1]] and not self.tableau[source[1]][-1].face_up:
-                            self.tableau[source[1]][-1].flip()
-                    else:
-                        self.foundations[suit_idx].append(self.storage[source[1]])
-                        self.storage[source[1]] = None
-                    if auto_move:
-                        self.auto_move_to_foundation()
-                    return (True, None)
-                else:
-                    return (False, "Invalid foundation move")
-            else:
-                return (False, "Invalid destination")
-
-        return (False, "Unknown move")
-
-    def is_game_won(self):
-        return all(len(pile) == 13 for pile in self.foundations)
-
-    def legal_moves(self):
-        """Return all valid moves in the format step() accepts."""
-        moves = []
-
-        # Draw from stock
-        if self.stock:
-            moves.append('draw')
-
-        # Waste to foundation
+    def _auto_move_waste(self) -> bool:
+        """Try to auto-move the waste top card to its foundation."""
         if self.waste:
             card = self.waste[-1]
             foundation_idx = SUITS.index(card.suit)
             if self.is_valid_foundation_move(card, foundation_idx):
-                moves.append('foundation')
+                self.foundations[foundation_idx].append(self.waste.pop())
+                return True
+        return False
 
-        # Waste to tableau
-        if self.waste:
-            card = self.waste[-1]
-            for col in range(7):
-                if self.is_valid_tableau_move(card, col):
-                    moves.append(('tableau', col))
+    def auto_move_to_foundation(self) -> None:
+        """Automatically move eligible cards to foundations where possible."""
+        moved = True
+        while moved:
+            moved = (
+                self._auto_move_tableau()
+                or self._auto_move_storage()
+                or self._auto_move_waste()
+            )
 
-        # Waste to storage (first empty slot only — all empty slots are equivalent)
-        if self.waste:
-            for slot in range(4):
-                if self.storage[slot] is None:
-                    moves.append(('storage', slot))
-                    break
+    def foundation_count(self) -> int:
+        """Return the total number of cards in all foundation piles."""
+        return sum(len(pile) for pile in self.foundations)
 
-        # Tableau top cards → foundation, tableau, storage
-        for src_col in range(7):
+    def _step_draw(self, *, auto_move: bool) -> tuple[bool, str | None]:
+        """Handle the 'draw' move."""
+        if not self.stock:
+            return (False, "No more cards in the stock pile")
+        card = self.stock.pop()
+        card.face_up = True
+        self.waste.append(card)
+        if auto_move:
+            self.auto_move_to_foundation()
+        return (True, None)
+
+    def _step_foundation(self, *, auto_move: bool) -> tuple[bool, str | None]:
+        """Handle the 'foundation' move (waste to foundation)."""
+        if not self.waste:
+            return (False, "No card to move")
+        card = self.waste[-1]
+        for i, suit in enumerate(SUITS):
+            if card.suit == suit and self.is_valid_foundation_move(card, i):
+                self.foundations[i].append(self.waste.pop())
+                if auto_move:
+                    self.auto_move_to_foundation()
+                return (True, None)
+        return (False, "Cannot move this card to any foundation pile")
+
+    def _step_tableau(
+        self,
+        col: int,
+        *,
+        auto_move: bool,
+    ) -> tuple[bool, str | None]:
+        """Handle waste-to-tableau move."""
+        if not self.waste:
+            return (False, "No card to move")
+        card = self.waste[-1]
+        if self.is_valid_tableau_move(card, col):
+            self.tableau[col].append(self.waste.pop())
+            if auto_move:
+                self.auto_move_to_foundation()
+            return (True, None)
+        return (False, "Invalid move to tableau")
+
+    def _step_storage(
+        self,
+        space: int,
+        *,
+        auto_move: bool,
+    ) -> tuple[bool, str | None]:
+        """Handle waste-to-storage move."""
+        if not self.waste:
+            return (False, "No card to move")
+        if space < 0 or space >= NUM_STORAGE_SLOTS:
+            return (False, "Invalid storage space")
+        if self.storage[space] is None:
+            self.storage[space] = self.waste.pop()
+            if auto_move:
+                self.auto_move_to_foundation()
+            return (True, None)
+        return (False, "Storage space is already occupied")
+
+    def _resolve_source(
+        self,
+        source: tuple[str, int],
+    ) -> tuple[Card | None, str | None]:
+        """Resolve the source card for a move command."""
+        if source[0] == "tableau":
+            col = source[1]
+            if (
+                0 <= col < NUM_TABLEAU_COLS
+                and self.tableau[col]
+                and self.tableau[col][-1].face_up
+            ):
+                return self.tableau[col][-1], None
+            return None, "No face-up card in that tableau column"
+        if source[0] == "storage":
+            space = source[1]
+            if 0 <= space < NUM_STORAGE_SLOTS and self.storage[space]:
+                return self.storage[space], None
+            return None, "No card in that storage space"
+        return None, "Invalid source"
+
+    def _flip_tableau_top(self, col: int) -> None:
+        """Flip the top card of a tableau column if it is face-down."""
+        if self.tableau[col] and not self.tableau[col][-1].face_up:
+            self.tableau[col][-1].flip()
+
+    def _step_move_to_tableau(
+        self,
+        source: tuple[str, int],
+        card: Card,
+        col: int,
+        *,
+        auto_move: bool,
+    ) -> tuple[bool, str | None]:
+        """Handle move-to-tableau destination."""
+        if not self.is_valid_tableau_move(card, col):
+            return (False, "Invalid tableau move")
+        if source[0] == "tableau":
+            self.tableau[col].append(self.tableau[source[1]].pop())
+            self._flip_tableau_top(source[1])
+        else:
+            self.tableau[col].append(self.storage[source[1]])
+            self.storage[source[1]] = None
+        if auto_move:
+            self.auto_move_to_foundation()
+        return (True, None)
+
+    def _step_move_to_storage(
+        self,
+        source: tuple[str, int],
+        space: int,
+        *,
+        auto_move: bool,
+    ) -> tuple[bool, str | None]:
+        """Handle move-to-storage destination."""
+        if self.storage[space] is not None:
+            return (False, "Storage space is already occupied")
+        if source[0] == "tableau":
+            self.storage[space] = self.tableau[source[1]].pop()
+            self._flip_tableau_top(source[1])
+        else:
+            self.storage[space] = self.storage[source[1]]
+            self.storage[source[1]] = None
+        if auto_move:
+            self.auto_move_to_foundation()
+        return (True, None)
+
+    def _step_move_to_foundation(
+        self,
+        source: tuple[str, int],
+        card: Card,
+        *,
+        auto_move: bool,
+    ) -> tuple[bool, str | None]:
+        """Handle move-to-foundation destination."""
+        suit_idx = SUITS.index(card.suit)
+        if not self.is_valid_foundation_move(card, suit_idx):
+            return (False, "Invalid foundation move")
+        if source[0] == "tableau":
+            self.foundations[suit_idx].append(self.tableau[source[1]].pop())
+            self._flip_tableau_top(source[1])
+        else:
+            self.foundations[suit_idx].append(self.storage[source[1]])
+            self.storage[source[1]] = None
+        if auto_move:
+            self.auto_move_to_foundation()
+        return (True, None)
+
+    def _step_move(
+        self,
+        move: tuple,
+        *,
+        auto_move: bool,
+    ) -> tuple[bool, str | None]:
+        """Handle compound move commands (source -> destination)."""
+        source = move[1]
+        destination = move[2]
+
+        card, err = self._resolve_source(source)
+        if card is None:
+            return (False, err)
+
+        if destination[0] == "tableau":
+            return self._step_move_to_tableau(
+                source,
+                card,
+                destination[1],
+                auto_move=auto_move,
+            )
+        if destination[0] == "storage":
+            return self._step_move_to_storage(
+                source,
+                destination[1],
+                auto_move=auto_move,
+            )
+        if destination[0] == "foundation":
+            return self._step_move_to_foundation(
+                source,
+                card,
+                auto_move=auto_move,
+            )
+        return (False, "Invalid destination")
+
+    def step(
+        self,
+        move: str | tuple,
+        *,
+        auto_move: bool = True,
+    ) -> tuple[bool, str | None]:
+        """Execute a move. Return (success, error_message)."""
+        if move == "draw":
+            return self._step_draw(auto_move=auto_move)
+
+        if move == "foundation":
+            return self._step_foundation(auto_move=auto_move)
+
+        if isinstance(move, tuple) and move[0] == "tableau":
+            return self._step_tableau(move[1], auto_move=auto_move)
+
+        if isinstance(move, tuple) and move[0] == "storage":
+            return self._step_storage(move[1], auto_move=auto_move)
+
+        if isinstance(move, tuple) and move[0] == "move":
+            return self._step_move(move, auto_move=auto_move)
+
+        return (False, "Unknown move")
+
+    def is_game_won(self) -> bool:
+        """Check if all cards are in the foundations."""
+        return all(len(pile) == CARDS_PER_SUIT for pile in self.foundations)
+
+    def _waste_moves(self) -> list:
+        """Collect legal moves originating from the waste pile."""
+        if not self.waste:
+            return []
+        moves = []
+        card = self.waste[-1]
+        foundation_idx = SUITS.index(card.suit)
+        if self.is_valid_foundation_move(card, foundation_idx):
+            moves.append("foundation")
+        moves.extend(
+            ("tableau", col)
+            for col in range(NUM_TABLEAU_COLS)
+            if self.is_valid_tableau_move(card, col)
+        )
+        for slot in range(NUM_STORAGE_SLOTS):
+            if self.storage[slot] is None:
+                moves.append(("storage", slot))
+                break
+        return moves
+
+    def _tableau_moves(self) -> list:
+        """Collect legal moves originating from tableau columns."""
+        moves = []
+        for src_col in range(NUM_TABLEAU_COLS):
             if not self.tableau[src_col]:
                 continue
             card = self.tableau[src_col][-1]
             if not card.face_up:
                 continue
 
-            # To foundation
             foundation_idx = SUITS.index(card.suit)
             if self.is_valid_foundation_move(card, foundation_idx):
-                moves.append(('move', ('tableau', src_col), ('foundation', foundation_idx)))
+                moves.append(
+                    ("move", ("tableau", src_col), ("foundation", foundation_idx)),
+                )
 
-            # To other tableau columns
-            for dest_col in range(7):
-                if src_col != dest_col and self.is_valid_tableau_move(card, dest_col):
-                    moves.append(('move', ('tableau', src_col), ('tableau', dest_col)))
+            moves.extend(
+                ("move", ("tableau", src_col), ("tableau", dest_col))
+                for dest_col in range(NUM_TABLEAU_COLS)
+                if src_col != dest_col and self.is_valid_tableau_move(card, dest_col)
+            )
 
-            # To storage (first empty slot)
-            for slot in range(4):
+            for slot in range(NUM_STORAGE_SLOTS):
                 if self.storage[slot] is None:
-                    moves.append(('move', ('tableau', src_col), ('storage', slot)))
+                    moves.append(
+                        ("move", ("tableau", src_col), ("storage", slot)),
+                    )
                     break
+        return moves
 
-        # Storage → foundation, tableau
-        for slot in range(4):
+    def _storage_moves(self) -> list:
+        """Collect legal moves originating from storage slots."""
+        moves = []
+        for slot in range(NUM_STORAGE_SLOTS):
             if self.storage[slot] is None:
                 continue
             card = self.storage[slot]
 
-            # To foundation
             foundation_idx = SUITS.index(card.suit)
             if self.is_valid_foundation_move(card, foundation_idx):
-                moves.append(('move', ('storage', slot), ('foundation', foundation_idx)))
+                moves.append(
+                    ("move", ("storage", slot), ("foundation", foundation_idx)),
+                )
 
-            # To tableau
-            for dest_col in range(7):
-                if self.is_valid_tableau_move(card, dest_col):
-                    moves.append(('move', ('storage', slot), ('tableau', dest_col)))
+            moves.extend(
+                ("move", ("storage", slot), ("tableau", dest_col))
+                for dest_col in range(NUM_TABLEAU_COLS)
+                if self.is_valid_tableau_move(card, dest_col)
+            )
+        return moves
+
+    def legal_moves(self) -> list:
+        """Return all valid moves in the format step() accepts."""
+        moves: list = []
+
+        if self.stock:
+            moves.append("draw")
+
+        moves.extend(self._waste_moves())
+        moves.extend(self._tableau_moves())
+        moves.extend(self._storage_moves())
 
         return moves
 
-    def is_game_over(self):
-        """Game is over when no legal moves remain."""
+    def is_game_over(self) -> bool:
+        """Return True when no legal moves remain."""
         return len(self.legal_moves()) == 0
 
-    def state_hash(self):
-        """Hashable snapshot of the full board state for cycle detection."""
-        parts = []
-        for col in self.tableau:
-            parts.append(tuple((c.suit, c.value, c.face_up) for c in col))
-        for pile in self.foundations:
-            parts.append(tuple((c.suit, c.value) for c in pile))
-        parts.append(tuple(
-            (c.suit, c.value) if c else None for c in self.storage
-        ))
+    def state_hash(self) -> int:
+        """Return a hashable snapshot of the full board state for cycle detection."""
+        parts: list = [
+            tuple((c.suit, c.value, c.face_up) for c in col) for col in self.tableau
+        ]
+        parts.extend(
+            tuple((c.suit, c.value) for c in pile) for pile in self.foundations
+        )
+        parts.append(tuple((c.suit, c.value) if c else None for c in self.storage))
         parts.append(tuple((c.suit, c.value) for c in self.waste))
         parts.append(len(self.stock))
         return hash(tuple(parts))
 
-    def is_endgame(self):
-        """True when stock is empty and all tableau cards are face-up.
+    def is_endgame(self) -> bool:
+        """Return True when stock is empty and all tableau cards are face-up.
 
         In the GUI, this triggers the auto-finish animation.
         """
