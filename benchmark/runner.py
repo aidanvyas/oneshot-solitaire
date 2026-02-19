@@ -19,7 +19,7 @@ console = Console()
 class GameResult:
     """Result of a single benchmark game."""
 
-    seed: int
+    game_id: int
     won: bool
     foundation_cards: int
     total_moves: int
@@ -130,7 +130,7 @@ class BenchmarkResults:
             "total_tokens": self.total_tokens,
             "games": [
                 {
-                    "seed": r.seed,
+                    "game_id": r.game_id,
                     "won": r.won,
                     "foundation_cards": r.foundation_cards,
                     "total_moves": r.total_moves,
@@ -153,7 +153,7 @@ class BenchmarkConfig:
 
     model: str = "gpt-5-nano"
     games: int = 10
-    start_seed: int = 42
+    start_game_id: int = 42
     max_moves: int = 200
     max_retries: int = 3
     reasoning_effort: str = "low"
@@ -185,7 +185,7 @@ class BenchmarkRunner:
         """Initialize the runner from a config dataclass."""
         self.model = config.model
         self.games = config.games
-        self.start_seed = config.start_seed
+        self.start_game_id = config.start_game_id
         self.max_moves = config.max_moves
         self.max_retries = config.max_retries
         self.reasoning_effort = config.reasoning_effort
@@ -282,9 +282,9 @@ class BenchmarkRunner:
             )
         return False, 0, 0
 
-    def play_one_game(self, seed: int) -> GameResult:
+    def play_one_game(self, game_id: int) -> GameResult:
         """Play a single game and return the result."""
-        game = OneShotSolitaire(seed=seed)
+        game = OneShotSolitaire(game_id=game_id)
         player = self._create_player()
 
         total_moves = 0
@@ -324,7 +324,7 @@ class BenchmarkRunner:
                         break
         except (openai.OpenAIError, KeyError, ValueError) as e:
             return GameResult(
-                seed=seed,
+                game_id=game_id,
                 won=False,
                 foundation_cards=game.foundation_count(),
                 total_moves=total_moves,
@@ -338,7 +338,7 @@ class BenchmarkRunner:
             )
 
         return GameResult(
-            seed=seed,
+            game_id=game_id,
             won=game.is_game_won(),
             foundation_cards=game.foundation_count(),
             total_moves=total_moves,
@@ -354,12 +354,12 @@ class BenchmarkRunner:
         """Run all benchmark games and return aggregated results."""
         results: list[GameResult] = []
         for i in range(self.games):
-            seed = self.start_seed + i
+            gid = self.start_game_id + i
             console.print(
-                f"Game {i + 1}/{self.games} (seed={seed})...",
+                f"Game {i + 1}/{self.games} (game_id={gid})...",
                 end=" ",
             )
-            result = self.play_one_game(seed)
+            result = self.play_one_game(gid)
             status = "WON" if result.won else f"{result.foundation_cards}/52"
             total_tok = result.input_tokens + result.output_tokens
             msg = (

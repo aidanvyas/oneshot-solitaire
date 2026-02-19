@@ -29,10 +29,10 @@ uv run python one_shot_solitaire_gui.py
 export OPENAI_API_KEY=your_api_key_here
 
 # Quick test (10 games, gpt-5-nano)
-uv run python -m benchmark --games 10 --seed 42 --verbose
+uv run python -m benchmark --games 10 --game-id 42 --verbose
 
 # Compare models
-uv run python -m benchmark --model o4-mini --games 10 --seed 42 --verbose
+uv run python -m benchmark --model o4-mini --games 10 --game-id 42 --verbose
 ```
 
 ## Game Mechanics
@@ -59,7 +59,7 @@ benchmark/                # LLM benchmark suite
   llm_player.py           # Text-mode LLM player (OpenAI Responses API)
   llm_player_tools.py     # Tool-calling mode LLM player
   text_protocol.py        # Game state renderer + move parser
-tests/                    # 89 unit tests
+tests/                    # 107 unit tests
 ```
 
 ## Benchmark
@@ -67,14 +67,14 @@ tests/                    # 89 unit tests
 Run LLMs against the game via the OpenAI Responses API:
 
 ```bash
-uv run python -m benchmark --games 10 --seed 42 --verbose
+uv run python -m benchmark --games 10 --game-id 42 --verbose
 ```
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--model` | `gpt-5-nano` | OpenAI model name |
 | `--games` | `10` | Number of games to play |
-| `--seed` | `42` | Starting seed (increments per game) |
+| `--game-id` | `42` | Starting game ID (increments per game) |
 | `--reasoning-effort` | `low` | `low`, `medium`, or `high` |
 | `--mode` | `text` | `text` or `tools` (function calling) |
 | `--max-moves` | `200` | Max moves per game |

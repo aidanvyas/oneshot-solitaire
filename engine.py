@@ -48,9 +48,18 @@ class Card:
 class OneShotSolitaire:
     """One-shot solitaire game with FreeCell-style storage slots."""
 
-    def __init__(self, seed: int | None = None) -> None:
-        """Initialize a new game with an optional seed for deterministic deals."""
-        self.seed = seed
+    def __init__(self, game_id: int | None = None) -> None:
+        """Initialize a new game.
+
+        Args:
+            game_id: Unique identifier that determines the deal. If None, a
+                random game_id is generated automatically. Two games with the
+                same game_id will always produce the same deal.
+
+        """
+        self.game_id: int = (
+            game_id if game_id is not None else random.randrange(1, 2**32)
+        )
         self.reset_game()
 
     def reset_game(self) -> None:
@@ -63,10 +72,7 @@ class OneShotSolitaire:
         self.moved_card: Card | None = None
 
         deck = [Card(suit, value) for suit in SUITS for value in VALUES]
-        if self.seed is not None:
-            random.Random(self.seed).shuffle(deck)
-        else:
-            random.shuffle(deck)
+        random.Random(self.game_id).shuffle(deck)
 
         for col in range(NUM_TABLEAU_COLS):
             for row in range(col + 1):

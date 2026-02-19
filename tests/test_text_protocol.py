@@ -11,7 +11,7 @@ class TestCardToAscii(unittest.TestCase):
 
     def test_card_formats_in_render(self) -> None:
         """Rendered output includes a Turn header."""
-        game = OneShotSolitaire(seed=42)
+        game = OneShotSolitaire(game_id=42)
         output = render_game_state(game, turn_number=0)
         # Rendered output should contain suit-letter + value patterns
         assert "Turn 0" in output

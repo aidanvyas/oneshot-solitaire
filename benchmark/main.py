@@ -15,7 +15,7 @@ def _print_header(args: argparse.Namespace) -> None:
     """Print the benchmark header before running games."""
     console.print("=== One-Shot Solitaire LLM Benchmark ===")
     console.print(
-        f"Model: {args.model} | Games: {args.games} | Start seed: {args.seed}",
+        f"Model: {args.model} | Games: {args.games} | Start game_id: {args.game_id}",
     )
     console.print(
         f"Max moves: {args.max_moves} | Max retries: {args.max_retries}"
@@ -68,10 +68,10 @@ def main() -> None:
         help="Number of games to play",
     )
     parser.add_argument(
-        "--seed",
+        "--game-id",
         type=int,
         default=42,
-        help="Starting seed",
+        help="Starting game ID",
     )
     parser.add_argument(
         "--max-moves",
@@ -113,7 +113,7 @@ def main() -> None:
     config = BenchmarkConfig(
         model=args.model,
         games=args.games,
-        start_seed=args.seed,
+        start_game_id=args.game_id,
         max_moves=args.max_moves,
         max_retries=args.max_retries,
         reasoning_effort=args.reasoning_effort,

@@ -61,13 +61,13 @@ async function api(method, path, body) {
 }
 
 // --- Game lifecycle ---
-async function newGame(seed) {
+async function newGame(dealId) {
   stopAutoFinish();
   stopConfetti();
   hideGameOver();
   autoPlayEnabled = true;
   updateAutoButton();
-  const body = seed != null ? { seed } : {};
+  const body = dealId != null ? { game_id: dealId } : {};
   const data = await api("POST", "/api/new-game", body);
   gameId = data.game_id;
   gameState = data.state;

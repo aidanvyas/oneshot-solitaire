@@ -10,7 +10,7 @@ class TestLegalMoves(unittest.TestCase):
 
     def _empty_game(self) -> OneShotSolitaire:
         """Create an empty game state for testing."""
-        game = OneShotSolitaire(seed=1)
+        game = OneShotSolitaire(game_id=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -138,12 +138,12 @@ class TestLegalMoves(unittest.TestCase):
 
     def test_all_legal_moves_are_executable(self) -> None:
         """Every move from legal_moves() should succeed in step()."""
-        game = OneShotSolitaire(seed=42)
+        game = OneShotSolitaire(game_id=42)
         for _ in range(5):
             game.step("draw", auto_move=False)
         moves = game.legal_moves()
         for move in moves:
-            test_game = OneShotSolitaire(seed=42)
+            test_game = OneShotSolitaire(game_id=42)
             for _ in range(5):
                 test_game.step("draw", auto_move=False)
             success, err = test_game.step(move, auto_move=False)
@@ -155,7 +155,7 @@ class TestIsGameOver(unittest.TestCase):
 
     def _empty_game(self) -> OneShotSolitaire:
         """Create an empty game state for testing."""
-        game = OneShotSolitaire(seed=1)
+        game = OneShotSolitaire(game_id=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -208,21 +208,21 @@ class TestStateHash(unittest.TestCase):
     """Tests for the state_hash method."""
 
     def test_same_state_same_hash(self) -> None:
-        """Same seed should produce same hash."""
-        game1 = OneShotSolitaire(seed=42)
-        game2 = OneShotSolitaire(seed=42)
+        """Same game_id should produce same hash."""
+        game1 = OneShotSolitaire(game_id=42)
+        game2 = OneShotSolitaire(game_id=42)
         assert game1.state_hash() == game2.state_hash()
 
     def test_different_state_different_hash(self) -> None:
         """Different states should produce different hashes."""
-        game1 = OneShotSolitaire(seed=42)
-        game2 = OneShotSolitaire(seed=42)
+        game1 = OneShotSolitaire(game_id=42)
+        game2 = OneShotSolitaire(game_id=42)
         game2.step("draw")
         assert game1.state_hash() != game2.state_hash()
 
     def test_hash_changes_after_move(self) -> None:
         """Hash should change after a move."""
-        game = OneShotSolitaire(seed=42)
+        game = OneShotSolitaire(game_id=42)
         h1 = game.state_hash()
         game.step("draw")
         h2 = game.state_hash()
@@ -230,7 +230,7 @@ class TestStateHash(unittest.TestCase):
 
     def test_hash_is_int(self) -> None:
         """Hash should be an integer."""
-        game = OneShotSolitaire(seed=42)
+        game = OneShotSolitaire(game_id=42)
         assert isinstance(game.state_hash(), int)
 
 
@@ -239,7 +239,7 @@ class TestIsEndgame(unittest.TestCase):
 
     def _empty_game(self) -> OneShotSolitaire:
         """Create an empty game state for testing."""
-        game = OneShotSolitaire(seed=1)
+        game = OneShotSolitaire(game_id=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -283,7 +283,7 @@ class TestStepAutoMoveParam(unittest.TestCase):
 
     def test_auto_move_true_moves_ace_to_foundation(self) -> None:
         """Auto-move should move ace to foundation after draw."""
-        game = OneShotSolitaire(seed=1)
+        game = OneShotSolitaire(game_id=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -295,7 +295,7 @@ class TestStepAutoMoveParam(unittest.TestCase):
 
     def test_auto_move_false_leaves_ace_in_waste(self) -> None:
         """Disabling auto-move should leave ace in waste."""
-        game = OneShotSolitaire(seed=1)
+        game = OneShotSolitaire(game_id=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4

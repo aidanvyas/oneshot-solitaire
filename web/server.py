@@ -32,7 +32,7 @@ games: dict[str, OneShotSolitaire] = {}
 class NewGameRequest(BaseModel):
     """Request body for creating a new game."""
 
-    seed: int | None = None
+    game_id: int | None = None
 
 
 class MoveRequest(BaseModel):
@@ -273,11 +273,15 @@ async def rules() -> FileResponse:
 @app.post("/api/new-game")
 async def new_game(req: NewGameRequest | None = None) -> dict[str, Any]:
     """Create a new game session."""
-    seed = req.seed if req else None
-    game_id = str(uuid.uuid4())
-    game = OneShotSolitaire(seed=seed)
-    games[game_id] = game
-    return {"game_id": game_id, "state": _serialize_state(game)}
+    requested_id = req.game_id if req else None
+    game = OneShotSolitaire(game_id=requested_id)
+    session_id = str(uuid.uuid4())
+    games[session_id] = game
+    return {
+        "game_id": session_id,
+        "deal_id": game.game_id,
+        "state": _serialize_state(game),
+    }
 
 
 @app.get("/api/state/{game_id}")
@@ -312,7 +316,7 @@ async def make_move(game_id: str, req: MoveRequest) -> dict[str, Any]:
 
 @app.post("/api/reset/{game_id}")
 async def reset_game(game_id: str) -> dict[str, Any]:
-    """Reset the game to its initial state (same seed)."""
+    """Reset the game to its initial state (same deal)."""
     game = _get_game(game_id)
     game.reset_game()
     return {"state": _serialize_state(game)}
