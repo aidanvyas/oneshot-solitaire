@@ -7,7 +7,7 @@ A challenging Klondike variant with one pass through the stock and 4 FreeCell-st
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/aidanvyas/oneshot-solitaire.git
+gh repo clone aidanvyas/oneshot-solitaire
 cd oneshot-solitaire
 uv sync  # Install dependencies with uv
 ```
