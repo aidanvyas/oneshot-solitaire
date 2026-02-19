@@ -5,7 +5,7 @@ from __future__ import annotations
 import openai
 
 _SYSTEM_PROMPT_RULES = (
-    "You are playing One-Pass Solitaire. Here are the rules:\n"
+    "You are playing One-Shot Solitaire. Here are the rules:\n"
     "\n"
     "GAME LAYOUT:\n"
     "- 7 tableau columns: build DOWN in ALTERNATING colors "
@@ -16,7 +16,7 @@ _SYSTEM_PROMPT_RULES = (
     "- 4 storage spaces: each holds exactly one card. "
     "Any card can go in an empty space.\n"
     "- Stock pile: draw one card at a time to waste. "
-    "ONE PASS ONLY - no recycling.\n"
+    "ONE SHOT ONLY - no recycling.\n"
     "- Waste pile: top card can be played to tableau, "
     "foundation, or storage.\n"
 )
@@ -49,7 +49,7 @@ _SYSTEM_PROMPT_STRATEGY = (
     "\nSTRATEGY TIPS:\n"
     "- Expose face-down cards in tableau when possible\n"
     "- Keep storage spaces open for critical cards\n"
-    "- Think ahead - you only get one pass through the stock\n"
+    "- Think ahead - you only get one shot through the stock\n"
     "- Building foundations too eagerly can block tableau moves\n"
     "\n"
     "Respond with EXACTLY ONE command. "

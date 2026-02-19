@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "oneshot-solitaire"
 version = "0.1.0"
-description = "One-Pass Solitaire: a challenging Klondike variant with FreeCell-style storage, plus an LLM benchmark suite"
+description = "One-Shot Solitaire: a challenging Klondike variant with FreeCell-style storage, plus an LLM benchmark suite"
 readme = "README.md"
 requires-python = ">=3.14"
 license = "MIT"
@@ -16,6 +16,8 @@ dependencies = [
     "pygame>=2.1.0",
     "openai",
     "rich",
+    "fastapi",
+    "uvicorn",
 ]
 
 [project.urls]

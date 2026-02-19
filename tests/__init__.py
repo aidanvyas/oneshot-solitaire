@@ -1,1 +1,1 @@
-"""Test suite for One-Pass Solitaire."""
+"""Test suite for One-Shot Solitaire."""

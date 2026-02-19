@@ -10,7 +10,7 @@ from rich.console import Console
 from benchmark.llm_player import LLMPlayer
 from benchmark.llm_player_tools import ToolCallPlayer
 from benchmark.text_protocol import parse_move, render_game_state
-from engine import OnePassSolitaire
+from engine import OneShotSolitaire
 
 console = Console()
 
@@ -209,7 +209,7 @@ class BenchmarkRunner:
     def _try_get_valid_move(
         self,
         player: LLMPlayer | ToolCallPlayer,
-        game: OnePassSolitaire,
+        game: OneShotSolitaire,
         state_text: str,
         turn_number: int,
         tokens: _TokenAccumulator,
@@ -261,7 +261,7 @@ class BenchmarkRunner:
 
     def _handle_max_retries(
         self,
-        game: OnePassSolitaire,
+        game: OneShotSolitaire,
         turn_number: int,
     ) -> tuple[bool, int, int]:
         """Handle the case when max retries are exhausted.
@@ -284,7 +284,7 @@ class BenchmarkRunner:
 
     def play_one_game(self, seed: int) -> GameResult:
         """Play a single game and return the result."""
-        game = OnePassSolitaire(seed=seed)
+        game = OneShotSolitaire(seed=seed)
         player = self._create_player()
 
         total_moves = 0

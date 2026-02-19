@@ -4,7 +4,7 @@ import unittest
 from io import StringIO
 from unittest.mock import patch
 
-from engine import SUITS, Card, OnePassSolitaire
+from engine import SUITS, Card, OneShotSolitaire
 
 INITIAL_TABLEAU_CARDS = 28
 INITIAL_STOCK_SIZE = 24
@@ -16,8 +16,8 @@ class TestSeedDeterminism(unittest.TestCase):
 
     def test_seeded_game_produces_same_deal(self) -> None:
         """Verify that the same seed produces identical deals."""
-        game1 = OnePassSolitaire(seed=42)
-        game2 = OnePassSolitaire(seed=42)
+        game1 = OneShotSolitaire(seed=42)
+        game2 = OneShotSolitaire(seed=42)
 
         # Compare all tableau cards
         for col in range(7):
@@ -36,8 +36,8 @@ class TestSeedDeterminism(unittest.TestCase):
 
     def test_different_seeds_produce_different_deals(self) -> None:
         """Verify that different seeds produce different deals."""
-        game1 = OnePassSolitaire(seed=42)
-        game2 = OnePassSolitaire(seed=99)
+        game1 = OneShotSolitaire(seed=42)
+        game2 = OneShotSolitaire(seed=99)
         # At least one card should differ in stock
         different = False
         for i in range(len(game1.stock)):
@@ -55,7 +55,7 @@ class TestStepDraw(unittest.TestCase):
 
     def test_draw_moves_card_from_stock_to_waste(self) -> None:
         """Verify that draw moves a card from stock to waste."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         stock_len_before = len(game.stock)
         waste_len_before = len(game.waste)
 
@@ -72,7 +72,7 @@ class TestStepDraw(unittest.TestCase):
 
     def test_draw_from_empty_stock_returns_error(self) -> None:
         """Verify that drawing from empty stock returns an error."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.stock = []
         success, err = game.step("draw")
         assert not success
@@ -85,7 +85,7 @@ class TestStepInvalidMoves(unittest.TestCase):
 
     def test_foundation_with_no_waste(self) -> None:
         """Verify that foundation move with empty waste fails."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.waste = []
         success, err = game.step("foundation")
         assert not success
@@ -93,7 +93,7 @@ class TestStepInvalidMoves(unittest.TestCase):
 
     def test_tableau_with_no_waste(self) -> None:
         """Verify that tableau move with empty waste fails."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.waste = []
         success, err = game.step(("tableau", 0))
         assert not success
@@ -101,7 +101,7 @@ class TestStepInvalidMoves(unittest.TestCase):
 
     def test_storage_with_no_waste(self) -> None:
         """Verify that storage move with empty waste fails."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.waste = []
         success, err = game.step(("storage", 0))
         assert not success
@@ -109,7 +109,7 @@ class TestStepInvalidMoves(unittest.TestCase):
 
     def test_storage_occupied(self) -> None:
         """Verify that moving to an occupied storage slot fails."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.waste = [Card("♠", "5", face_up=True)]
         game.storage[0] = Card("♥", "3", face_up=True)
         success, err = game.step(("storage", 0))
@@ -118,7 +118,7 @@ class TestStepInvalidMoves(unittest.TestCase):
 
     def test_invalid_moves_do_not_print(self) -> None:
         """Verify that invalid moves produce no stdout output."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.waste = []
         with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             success, _err = game.step("foundation")
@@ -127,7 +127,7 @@ class TestStepInvalidMoves(unittest.TestCase):
 
     def test_move_from_empty_tableau(self) -> None:
         """Verify that moving from an empty tableau column fails."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau[0] = []
         success, err = game.step(("move", ("tableau", 0), ("tableau", 1)))
         assert not success
@@ -135,7 +135,7 @@ class TestStepInvalidMoves(unittest.TestCase):
 
     def test_move_from_empty_storage(self) -> None:
         """Verify that moving from an empty storage slot fails."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.storage[0] = None
         success, err = game.step(("move", ("storage", 0), ("tableau", 1)))
         assert not success
@@ -143,7 +143,7 @@ class TestStepInvalidMoves(unittest.TestCase):
 
     def test_unknown_move_returns_error(self) -> None:
         """Verify that an unknown move type returns an error."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         success, err = game.step("nonexistent")
         assert not success
         assert err is not None
@@ -154,7 +154,7 @@ class TestStepAutoMoveToFoundation(unittest.TestCase):
 
     def test_ace_auto_moves_to_foundation(self) -> None:
         """Verify that an ace drawn from stock auto-moves to foundation."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         # Clear state for controlled test
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
@@ -173,7 +173,7 @@ class TestStepAutoMoveToFoundation(unittest.TestCase):
 
     def test_sequential_auto_move(self) -> None:
         """Verify that sequential auto-moves chain correctly."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -202,13 +202,13 @@ class TestFoundationCount(unittest.TestCase):
 
     def test_empty_foundations(self) -> None:
         """Verify that empty foundations return count of zero."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.foundations = [[] for _ in range(4)]
         assert game.foundation_count() == 0
 
     def test_some_cards_in_foundations(self) -> None:
         """Verify that foundation count sums cards across all suits."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.foundations = [
             [Card("♠", "A", face_up=True)],
             [Card("♥", "A", face_up=True), Card("♥", "2", face_up=True)],
@@ -224,7 +224,7 @@ class TestFoundationCount(unittest.TestCase):
 
     def test_full_foundations(self) -> None:
         """Verify that full foundations return count of 52."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.foundations = [
             [
                 Card(s, v, face_up=True)
@@ -254,7 +254,7 @@ class TestNoArgConstructor(unittest.TestCase):
 
     def test_no_arg_constructor(self) -> None:
         """Verify that constructor without seed deals correctly."""
-        game = OnePassSolitaire()
+        game = OneShotSolitaire()
         assert game.seed is None
         # Should still deal 28 tableau cards + 24 stock cards
         total_tableau = sum(len(col) for col in game.tableau)
@@ -267,7 +267,7 @@ class TestStepMoveCommand(unittest.TestCase):
 
     def test_move_tableau_to_tableau(self) -> None:
         """Verify that a card can move between tableau columns."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -286,7 +286,7 @@ class TestStepMoveCommand(unittest.TestCase):
 
     def test_move_storage_to_tableau(self) -> None:
         """Verify that a card can move from storage to tableau."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -304,7 +304,7 @@ class TestStepMoveCommand(unittest.TestCase):
 
     def test_move_tableau_to_storage(self) -> None:
         """Verify that a card can move from tableau to storage."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -320,7 +320,7 @@ class TestStepMoveCommand(unittest.TestCase):
 
     def test_move_tableau_to_foundation(self) -> None:
         """Verify that a card can move from tableau to foundation."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -336,7 +336,7 @@ class TestStepMoveCommand(unittest.TestCase):
 
     def test_move_invalid_tableau_move(self) -> None:
         """Verify that same-color tableau stacking fails."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -352,7 +352,7 @@ class TestStepMoveCommand(unittest.TestCase):
 
     def test_move_flips_next_card(self) -> None:
         """Verify that moving exposes and flips the card underneath."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -373,7 +373,7 @@ class TestStepFoundationAndTableauFromWaste(unittest.TestCase):
 
     def test_waste_to_foundation(self) -> None:
         """Verify that waste ace moves to foundation."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -387,7 +387,7 @@ class TestStepFoundationAndTableauFromWaste(unittest.TestCase):
 
     def test_waste_to_tableau(self) -> None:
         """Verify that waste card moves to a valid tableau column."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -403,7 +403,7 @@ class TestStepFoundationAndTableauFromWaste(unittest.TestCase):
 
     def test_waste_to_storage(self) -> None:
         """Verify that waste card moves to an empty storage slot."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -416,7 +416,7 @@ class TestStepFoundationAndTableauFromWaste(unittest.TestCase):
 
     def test_invalid_waste_to_foundation(self) -> None:
         """Verify that non-ace waste card cannot go to empty foundation."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4

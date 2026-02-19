@@ -1,16 +1,16 @@
-"""Tests for OnePassSolitaire game rules (tableau, foundation, game-over)."""
+"""Tests for OneShotSolitaire game rules (tableau, foundation, game-over)."""
 
 import unittest
 
-from engine import Card, OnePassSolitaire
+from engine import Card, OneShotSolitaire
 
 
-class TestOnePassSolitaireRules(unittest.TestCase):
+class TestOneShotSolitaireRules(unittest.TestCase):
     """Verify core solitaire rule enforcement."""
 
     def setUp(self) -> None:
         """Create a blank game state for each test."""
-        self.game = OnePassSolitaire()
+        self.game = OneShotSolitaire()
         # Start from a controlled state.
         self.game.tableau = [[] for _ in range(7)]
         self.game.foundations = [[] for _ in range(4)]

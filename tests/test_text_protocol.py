@@ -3,7 +3,7 @@
 import unittest
 
 from benchmark.text_protocol import parse_move, render_game_state
-from engine import Card, OnePassSolitaire
+from engine import Card, OneShotSolitaire
 
 
 class TestCardToAscii(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestCardToAscii(unittest.TestCase):
 
     def test_card_formats_in_render(self) -> None:
         """Rendered output includes a Turn header."""
-        game = OnePassSolitaire(seed=42)
+        game = OneShotSolitaire(seed=42)
         output = render_game_state(game, turn_number=0)
         # Rendered output should contain suit-letter + value patterns
         assert "Turn 0" in output
@@ -20,9 +20,9 @@ class TestCardToAscii(unittest.TestCase):
 class TestRenderGameState(unittest.TestCase):
     """Verify render_game_state produces expected text sections."""
 
-    def _make_game(self) -> OnePassSolitaire:
+    def _make_game(self) -> OneShotSolitaire:
         """Create a game with a known, manually-configured state."""
-        game = OnePassSolitaire.__new__(OnePassSolitaire)
+        game = OneShotSolitaire.__new__(OneShotSolitaire)
         game.stock = [Card("♠", "3"), Card("♦", "7")]
         game.waste = [Card("♠", "5", face_up=True)]
         game.foundations = [

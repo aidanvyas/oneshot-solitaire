@@ -1,4 +1,4 @@
-"""CLI entry point for the One-Pass Solitaire LLM benchmark."""
+"""CLI entry point for the One-Shot Solitaire LLM benchmark."""
 
 import argparse
 import json
@@ -13,7 +13,7 @@ console = Console()
 
 def _print_header(args: argparse.Namespace) -> None:
     """Print the benchmark header before running games."""
-    console.print("=== One-Pass Solitaire LLM Benchmark ===")
+    console.print("=== One-Shot Solitaire LLM Benchmark ===")
     console.print(
         f"Model: {args.model} | Games: {args.games} | Start seed: {args.seed}",
     )
@@ -54,7 +54,7 @@ def _print_results(results: BenchmarkResults) -> None:
 def main() -> None:
     """Parse arguments and run the LLM benchmark."""
     parser = argparse.ArgumentParser(
-        description="One-Pass Solitaire LLM Benchmark",
+        description="One-Shot Solitaire LLM Benchmark",
     )
     parser.add_argument(
         "--model",

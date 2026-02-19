@@ -1,7 +1,7 @@
-# ONE-PASS SOLITAIRE: OFFICIAL RULEBOOK
+# ONE-SHOT SOLITAIRE: OFFICIAL RULEBOOK
 
 ## INTRODUCTION
-One-Pass Solitaire is a challenging variant of Klondike Solitaire that tests your strategic planning and card management skills. With only one pass through the deck and four special storage spaces, every decision matters in this game of patience and foresight.
+One-Shot Solitaire is a challenging variant of Klondike Solitaire that tests your strategic planning and card management skills. With only one shot through the deck and four special storage spaces, every decision matters in this game of patience and foresight.
 
 ## COMPONENTS
 - Standard 52-card deck
@@ -59,7 +59,7 @@ Move all 52 cards to the four foundation piles, with each foundation containing 
 
 ## RESTRICTIONS
 - **No Undo**: Once a move is made, it cannot be reversed.
-- **One Pass Only**: You may only go through the Stock Pile once.
+- **One Shot Only**: You may only go through the Stock Pile once.
 
 ## WINNING AND LOSING
 - You win when all 52 cards have been transferred to the foundation piles in proper order.
@@ -73,7 +73,7 @@ Move all 52 cards to the four foundation piles, with each foundation containing 
 5. Remember that once a card is committed to a foundation, it cannot be returned to play.
 
 ## DIFFERENCES FROM TRADITIONAL KLONDIKE
-- One pass through the Stock Pile only (versus three or unlimited passes).
+- One shot through the Stock Pile only (versus three or unlimited passes).
 - Four single-card storage spaces (not present in traditional Klondike).
 - No undo function (many digital versions of Klondike allow this).
 

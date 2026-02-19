@@ -6,7 +6,7 @@ import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from engine import Card, OnePassSolitaire
+    from engine import Card, OneShotSolitaire
 
 SUIT_TO_ASCII: dict[str, str] = {
     "\u2660": "S",
@@ -25,7 +25,7 @@ def card_to_ascii(card: Card) -> str:
     return SUIT_TO_ASCII[card.suit] + card.value
 
 
-def _render_foundations(game: OnePassSolitaire) -> list[str]:
+def _render_foundations(game: OneShotSolitaire) -> list[str]:
     """Render the foundation piles as text lines."""
     lines: list[str] = ["", "Foundations:"]
     for i, name in enumerate(SUIT_NAMES):
@@ -38,7 +38,7 @@ def _render_foundations(game: OnePassSolitaire) -> list[str]:
     return lines
 
 
-def _render_storage(game: OnePassSolitaire) -> list[str]:
+def _render_storage(game: OneShotSolitaire) -> list[str]:
     """Render the storage slots as text lines."""
     parts: list[str] = []
     for slot in game.storage:
@@ -49,7 +49,7 @@ def _render_storage(game: OnePassSolitaire) -> list[str]:
     return ["", "Storage: " + " ".join(parts)]
 
 
-def _render_tableau(game: OnePassSolitaire) -> list[str]:
+def _render_tableau(game: OneShotSolitaire) -> list[str]:
     """Render the tableau columns as text lines."""
     lines: list[str] = ["", "Tableau:"]
     for col_idx, column in enumerate(game.tableau):
@@ -69,7 +69,7 @@ def _render_tableau(game: OnePassSolitaire) -> list[str]:
 
 
 def render_game_state(
-    game: OnePassSolitaire,
+    game: OneShotSolitaire,
     turn_number: int = 0,
 ) -> str:
     """Produce a text representation of the game state for an LLM."""

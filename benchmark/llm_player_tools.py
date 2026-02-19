@@ -147,7 +147,7 @@ def tool_call_to_text(
 
 
 _SYSTEM_PROMPT = (
-    "You are playing One-Pass Solitaire.\n"
+    "You are playing One-Shot Solitaire.\n"
     "\n"
     "RULES:\n"
     "- 7 tableau columns: build DOWN in ALTERNATING colors "
@@ -156,7 +156,7 @@ _SYSTEM_PROMPT = (
     "- 4 foundations: build UP by suit from Ace to King.\n"
     "- 4 storage spaces: each holds exactly one card.\n"
     "- Stock pile: draw one card at a time to waste. "
-    "ONE PASS ONLY.\n"
+    "ONE SHOT ONLY.\n"
     "\n"
     "CARD FORMAT: Suit letter + value. "
     "S=Spades(black), C=Clubs(black), "

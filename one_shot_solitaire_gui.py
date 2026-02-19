@@ -1,4 +1,4 @@
-"""Pygame GUI for One-Pass Solitaire."""
+"""Pygame GUI for One-Shot Solitaire."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pygame
 
-from engine import SUITS, Card, OnePassSolitaire
+from engine import SUITS, Card, OneShotSolitaire
 
 # Initialize pygame
 pygame.init()
@@ -67,7 +67,7 @@ SUIT_RENDER_COLORS = {"\u2660": BLACK, "\u2663": BLACK, "\u2665": RED, "\u2666":
 
 # Set up the display
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("One-Pass Solitaire")
+pygame.display.set_caption("One-Shot Solitaire")
 clock = pygame.time.Clock()
 
 font = pygame.font.SysFont("Arial", FONT_SIZE)
@@ -163,12 +163,12 @@ def _load_rules() -> list[str]:
         return ["Rules file not found."]
 
 
-class OnePassSolitaireGUI:
-    """Pygame-based graphical interface for One-Pass Solitaire."""
+class OneShotSolitaireGUI:
+    """Pygame-based graphical interface for One-Shot Solitaire."""
 
     def __init__(self) -> None:
         """Initialize the GUI and start a new game."""
-        self.game = OnePassSolitaire()
+        self.game = OneShotSolitaire()
         self.card_being_dragged: Card | None = None
         self.drag_pile: list[Card] = []
         self.drag_from: tuple[str, int] | None = None
@@ -1442,5 +1442,5 @@ class OnePassSolitaireGUI:
 
 
 if __name__ == "__main__":
-    game = OnePassSolitaireGUI()
+    game = OneShotSolitaireGUI()
     game.run()

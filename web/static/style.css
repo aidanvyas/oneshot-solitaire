@@ -1,0 +1,779 @@
+/* ============================================================
+   ONE-SHOT SOLITAIRE — "Velvet Table" Theme
+   Rich emerald felt, warm ivory cards, gold accents
+   ============================================================ */
+
+/* --- Custom Properties --- */
+:root {
+  --card-w: 82px;
+  --card-h: 122px;
+  --card-radius: 7px;
+  --card-overlap: 28px;
+
+  /* Felt */
+  --felt-1: #2d7a4f;
+  --felt-2: #236b3e;
+  --felt-3: #1a5c32;
+  --felt-vignette: rgba(10, 40, 20, 0.4);
+
+  /* Cards */
+  --card-face: #faf6ef;
+  --card-face-border: #c8bfb0;
+  --card-back-1: #1b2a4a;
+  --card-back-2: #0f1d36;
+  --card-back-accent: rgba(196, 163, 90, 0.12);
+  --card-back-border: #2a3d66;
+
+  /* Suits */
+  --red-suit: #a3231a;
+  --black-suit: #1a1a1a;
+
+  /* Accents */
+  --gold: #c4a35a;
+  --gold-dim: rgba(196, 163, 90, 0.35);
+  --gold-bright: #dbb96e;
+
+  /* Slots */
+  --slot-border: rgba(196, 163, 90, 0.2);
+  --slot-bg: rgba(0, 0, 0, 0.15);
+  --slot-inset: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+
+  /* UI */
+  --text-muted: rgba(255, 255, 255, 0.45);
+  --text-light: rgba(255, 255, 255, 0.75);
+  --panel-bg: #1c1c1e;
+  --panel-surface: #2c2c2e;
+  --panel-border: rgba(196, 163, 90, 0.15);
+
+  /* Typography */
+  --font-display: "Cormorant Garamond", "Georgia", serif;
+  --font-ui: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-card: "DM Sans", sans-serif;
+}
+
+/* --- Reset --- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* --- Body & Felt Background --- */
+body {
+  background: var(--felt-2);
+  font-family: var(--font-ui);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Multi-layer felt background */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 35%, var(--felt-1) 0%, var(--felt-2) 50%, var(--felt-3) 100%),
+    var(--felt-2);
+  z-index: -2;
+}
+
+/* Vignette */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 45%, transparent 0%, var(--felt-vignette) 100%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Felt noise texture */
+#felt-texture {
+  position: fixed;
+  inset: 0;
+  opacity: 0.035;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* --- Game Container --- */
+#game-container {
+  width: 1000px;
+  min-height: 100vh;
+  margin: 0 auto;
+  position: relative;
+  padding: 0 24px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Title Bar --- */
+#title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 8px;
+  border-bottom: 1px solid rgba(196, 163, 90, 0.12);
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  max-width: 646px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+#game-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+#title-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+#foundation-counter {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gold-dim);
+  letter-spacing: 0.03em;
+}
+
+#buttons {
+  display: flex;
+  gap: 6px;
+}
+
+#buttons button {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-light);
+  border: 1px solid rgba(196, 163, 90, 0.15);
+  border-radius: 5px;
+  padding: 6px 14px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#buttons button:hover {
+  background: rgba(196, 163, 90, 0.12);
+  border-color: rgba(196, 163, 90, 0.3);
+  color: var(--gold-bright);
+}
+
+#buttons button:active {
+  transform: scale(0.97);
+}
+
+/* --- Top Row --- */
+#top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  height: calc(var(--card-h) + 4px);
+  flex-shrink: 0;
+  max-width: 646px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+#stock-waste {
+  display: flex;
+  gap: 16px;
+}
+
+#foundations {
+  display: flex;
+  gap: 10px;
+}
+
+/* --- Card Slots --- */
+.card-slot {
+  width: var(--card-w);
+  height: var(--card-h);
+  border: 1.5px solid var(--slot-border);
+  border-radius: var(--card-radius);
+  background: var(--slot-bg);
+  box-shadow: var(--slot-inset);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.slot-label {
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.suit-label {
+  font-size: 30px;
+  color: rgba(196, 163, 90, 0.18);
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.suit-label.hearts {
+  color: rgba(163, 35, 26, 0.25);
+}
+
+.count-badge {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: var(--panel-bg);
+  border: 1px solid var(--gold-dim);
+  color: var(--gold);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 22px;
+  height: 20px;
+  border-radius: 10px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.count-badge.visible {
+  display: flex;
+}
+
+/* Stock cursor */
+#stock {
+  cursor: pointer;
+}
+
+#stock:hover {
+  border-color: var(--gold-dim);
+}
+
+/* --- Tableau --- */
+#tableau {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  margin-top: 16px;
+  justify-content: center;
+  max-width: 646px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+.tableau-col {
+  width: var(--card-w);
+  min-height: var(--card-h);
+  position: relative;
+  flex-shrink: 0;
+  padding-bottom: 60px;
+}
+
+/* Empty tableau column indicator */
+.tableau-col.empty::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--card-w);
+  height: var(--card-h);
+  border: 1.5px dashed var(--slot-border);
+  border-radius: var(--card-radius);
+  background: var(--slot-bg);
+  box-shadow: var(--slot-inset);
+}
+
+.tableau-col.empty::after {
+  content: "K";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--card-w);
+  height: var(--card-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* --- Bottom Row --- */
+#bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 16px;
+  max-width: 646px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+#storage {
+  display: flex;
+  gap: 10px;
+}
+
+#storage-label {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+
+.card {
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--card-radius);
+  position: absolute;
+  touch-action: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+/* --- Face Up --- */
+.card.face-up {
+  background: var(--card-face);
+  border: 1px solid var(--card-face-border);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.15),
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  cursor: grab;
+}
+
+.card.face-up:hover {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 6px 14px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+/* Corners */
+.card.face-up .card-corner {
+  position: absolute;
+  line-height: 1.15;
+  font-family: var(--font-card);
+}
+
+.card.face-up .card-corner.top {
+  top: 5px;
+  left: 5px;
+}
+
+.card.face-up .card-corner.bottom {
+  bottom: 5px;
+  right: 5px;
+  transform: rotate(180deg);
+}
+
+.card.face-up .card-corner .card-val {
+  font-size: 14px;
+  font-weight: 700;
+  display: block;
+}
+
+.card.face-up .card-corner .card-suit-small {
+  font-size: 12px;
+  display: block;
+  margin-top: -2px;
+}
+
+/* Center pip */
+.card.face-up .card-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 34px;
+  opacity: 0.85;
+}
+
+/* Suit colors */
+.card.red { color: var(--red-suit); }
+.card.black { color: var(--black-suit); }
+
+/* --- Face Down --- */
+.card.face-down {
+  background: var(--card-back-1);
+  border: 1px solid var(--card-back-border);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 3px 6px rgba(0, 0, 0, 0.1);
+  cursor: default;
+  overflow: hidden;
+}
+
+/* Diamond lattice pattern on card back */
+.card.face-down::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(196, 163, 90, 0.12);
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0px,
+      transparent 7px,
+      rgba(196, 163, 90, 0.06) 7px,
+      rgba(196, 163, 90, 0.06) 8px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0px,
+      transparent 7px,
+      rgba(196, 163, 90, 0.06) 7px,
+      rgba(196, 163, 90, 0.06) 8px
+    );
+}
+
+/* Small center ornament on card back */
+.card.face-down::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border: 1.5px solid rgba(196, 163, 90, 0.2);
+  border-radius: 2px;
+}
+
+/* --- Dragging --- */
+.card.dragging {
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  z-index: 1000 !important;
+  cursor: grabbing;
+  pointer-events: none;
+  transform: rotate(1deg);
+}
+
+/* Drop target highlight */
+.card-slot.drop-highlight,
+.tableau-col.drop-highlight {
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 12px rgba(196, 163, 90, 0.3);
+  border-color: var(--gold);
+}
+
+/* ============================================================
+   STATUS BAR
+   ============================================================ */
+
+#status-bar {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  text-align: center;
+  color: var(--gold-bright);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 24px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 50;
+  white-space: nowrap;
+}
+
+#status-bar.visible {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================================
+   OVERLAY PANELS
+   ============================================================ */
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 20, 12, 0.8);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: overlayIn 0.2s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+#overlay.hidden {
+  display: none;
+}
+
+#overlay-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  width: 560px;
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  animation: panelIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+#overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+#overlay-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gold);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+#overlay-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0 4px;
+  transition: color 0.15s;
+  line-height: 1;
+}
+
+#overlay-close:hover {
+  color: var(--gold);
+}
+
+#overlay-body {
+  padding: 16px 20px 20px;
+  overflow-y: auto;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+#overlay-body h1,
+#overlay-body h2,
+#overlay-body h3 {
+  font-family: var(--font-display);
+  color: var(--gold);
+  letter-spacing: 0.02em;
+}
+
+#overlay-body h1 { font-size: 20px; margin-top: 20px; margin-bottom: 8px; }
+#overlay-body h2 { font-size: 17px; margin-top: 16px; margin-bottom: 6px; }
+#overlay-body h3 { font-size: 15px; margin-top: 14px; margin-bottom: 4px; }
+
+#overlay-body ul,
+#overlay-body ol {
+  padding-left: 20px;
+  margin: 6px 0;
+}
+
+#overlay-body li {
+  margin: 4px 0;
+}
+
+#overlay-body p {
+  margin: 6px 0;
+}
+
+#overlay-body strong {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+#overlay-body hr {
+  border: none;
+  border-top: 1px solid var(--panel-border);
+  margin: 14px 0;
+}
+
+/* Scrollbar styling for overlay */
+#overlay-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+#overlay-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#overlay-body::-webkit-scrollbar-thumb {
+  background: rgba(196, 163, 90, 0.2);
+  border-radius: 3px;
+}
+
+#overlay-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(196, 163, 90, 0.35);
+}
+
+/* ============================================================
+   GAME OVER
+   ============================================================ */
+
+#game-over-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 20, 12, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  animation: overlayIn 0.3s ease;
+}
+
+#game-over-overlay.hidden {
+  display: none;
+}
+
+#game-over-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 40px 56px;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  animation: panelIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#game-over-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+#game-over-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+
+#game-over-title.won {
+  color: var(--gold);
+}
+
+#game-over-title.lost {
+  color: var(--red-suit);
+}
+
+#game-over-text {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+#game-over-btn {
+  background: transparent;
+  color: var(--gold);
+  border: 1.5px solid var(--gold-dim);
+  border-radius: 8px;
+  padding: 10px 32px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#game-over-btn:hover {
+  background: rgba(196, 163, 90, 0.1);
+  border-color: var(--gold);
+}
+
+/* ============================================================
+   HINTS
+   ============================================================ */
+
+.hint-item {
+  padding: 8px 12px;
+  margin: 2px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 13px;
+  border-left: 2px solid transparent;
+}
+
+.hint-item:hover {
+  background: rgba(196, 163, 90, 0.08);
+  border-left-color: var(--gold);
+}
+
+/* ============================================================
+   CONFETTI CANVAS
+   ============================================================ */
+
+#confetti-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 300;
+}

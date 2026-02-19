@@ -1,4 +1,4 @@
-"""One-Pass Solitaire game engine."""
+"""One-Shot Solitaire game engine."""
 
 from __future__ import annotations
 
@@ -45,8 +45,8 @@ class Card:
         return self
 
 
-class OnePassSolitaire:
-    """One-pass solitaire game with FreeCell-style storage slots."""
+class OneShotSolitaire:
+    """One-shot solitaire game with FreeCell-style storage slots."""
 
     def __init__(self, seed: int | None = None) -> None:
         """Initialize a new game with an optional seed for deterministic deals."""
@@ -212,25 +212,41 @@ class OnePassSolitaire:
             return (True, None)
         return (False, "Storage space is already occupied")
 
+    def _resolve_source_tableau(self, col: int) -> tuple[Card | None, str | None]:
+        """Resolve a tableau column as a move source."""
+        if (
+            0 <= col < NUM_TABLEAU_COLS
+            and self.tableau[col]
+            and self.tableau[col][-1].face_up
+        ):
+            return self.tableau[col][-1], None
+        return None, "No face-up card in that tableau column"
+
+    def _resolve_source_storage(self, space: int) -> tuple[Card | None, str | None]:
+        """Resolve a storage slot as a move source."""
+        if 0 <= space < NUM_STORAGE_SLOTS and self.storage[space]:
+            return self.storage[space], None
+        return None, "No card in that storage space"
+
+    def _resolve_source_foundation(self, idx: int) -> tuple[Card | None, str | None]:
+        """Resolve a foundation pile as a move source."""
+        if 0 <= idx < NUM_FOUNDATION_PILES and self.foundations[idx]:
+            return self.foundations[idx][-1], None
+        return None, "No card in that foundation pile"
+
     def _resolve_source(
         self,
         source: tuple[str, int],
     ) -> tuple[Card | None, str | None]:
         """Resolve the source card for a move command."""
-        if source[0] == "tableau":
-            col = source[1]
-            if (
-                0 <= col < NUM_TABLEAU_COLS
-                and self.tableau[col]
-                and self.tableau[col][-1].face_up
-            ):
-                return self.tableau[col][-1], None
-            return None, "No face-up card in that tableau column"
-        if source[0] == "storage":
-            space = source[1]
-            if 0 <= space < NUM_STORAGE_SLOTS and self.storage[space]:
-                return self.storage[space], None
-            return None, "No card in that storage space"
+        resolvers = {
+            "tableau": self._resolve_source_tableau,
+            "storage": self._resolve_source_storage,
+            "foundation": self._resolve_source_foundation,
+        }
+        resolver = resolvers.get(source[0])
+        if resolver:
+            return resolver(source[1])
         return None, "Invalid source"
 
     def _flip_tableau_top(self, col: int) -> None:
@@ -252,6 +268,8 @@ class OnePassSolitaire:
         if source[0] == "tableau":
             self.tableau[col].append(self.tableau[source[1]].pop())
             self._flip_tableau_top(source[1])
+        elif source[0] == "foundation":
+            self.tableau[col].append(self.foundations[source[1]].pop())
         else:
             self.tableau[col].append(self.storage[source[1]])
             self.storage[source[1]] = None

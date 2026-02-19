@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One-Shot Solitaire</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Felt texture overlay -->
+  <div id="felt-texture"></div>
+
+  <div id="game-container">
+    <!-- Title bar -->
+    <div id="title-bar">
+      <h1 id="game-title">One-Shot Solitaire</h1>
+      <div id="title-right">
+        <span id="foundation-counter">0 / 52</span>
+        <div id="buttons">
+          <button id="btn-hint">Hint</button>
+          <button id="btn-rules">Rules</button>
+          <button id="btn-new">New Game</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top row: stock + waste (left), foundations (right) -->
+    <div id="top-row">
+      <div id="stock-waste">
+        <div id="stock" class="card-slot stock-slot">
+          <span class="slot-label">STOCK</span>
+          <span id="stock-count" class="count-badge"></span>
+        </div>
+        <div id="waste" class="card-slot waste-slot">
+          <span class="slot-label">WASTE</span>
+          <span id="waste-count" class="count-badge"></span>
+        </div>
+      </div>
+      <div id="foundations">
+        <div class="card-slot foundation-slot" data-foundation="0"><span class="suit-label">&spades;</span></div>
+        <div class="card-slot foundation-slot" data-foundation="1"><span class="suit-label hearts">&hearts;</span></div>
+        <div class="card-slot foundation-slot" data-foundation="2"><span class="suit-label hearts">&diams;</span></div>
+        <div class="card-slot foundation-slot" data-foundation="3"><span class="suit-label">&clubs;</span></div>
+      </div>
+    </div>
+
+    <!-- Tableau -->
+    <div id="tableau">
+      <div class="tableau-col" data-col="0"></div>
+      <div class="tableau-col" data-col="1"></div>
+      <div class="tableau-col" data-col="2"></div>
+      <div class="tableau-col" data-col="3"></div>
+      <div class="tableau-col" data-col="4"></div>
+      <div class="tableau-col" data-col="5"></div>
+      <div class="tableau-col" data-col="6"></div>
+    </div>
+
+    <!-- Bottom row: storage -->
+    <div id="bottom-row">
+      <div id="storage">
+        <div class="card-slot storage-slot" data-storage="0"><span class="slot-label">+</span></div>
+        <div class="card-slot storage-slot" data-storage="1"><span class="slot-label">+</span></div>
+        <div class="card-slot storage-slot" data-storage="2"><span class="slot-label">+</span></div>
+        <div class="card-slot storage-slot" data-storage="3"><span class="slot-label">+</span></div>
+      </div>
+      <div id="storage-label">Storage</div>
+    </div>
+  </div>
+
+  <!-- Status message bar -->
+  <div id="status-bar"></div>
+
+  <!-- Overlay panels -->
+  <div id="overlay" class="hidden">
+    <div id="overlay-panel">
+      <div id="overlay-header">
+        <h2 id="overlay-title"></h2>
+        <button id="overlay-close">&times;</button>
+      </div>
+      <div id="overlay-body"></div>
+    </div>
+  </div>
+
+  <!-- Game over overlay -->
+  <div id="game-over-overlay" class="hidden">
+    <div id="game-over-panel">
+      <div id="game-over-icon"></div>
+      <h2 id="game-over-title"></h2>
+      <p id="game-over-text"></p>
+      <button id="game-over-btn">Deal Again</button>
+    </div>
+  </div>
+
+  <!-- Confetti canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

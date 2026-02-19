@@ -1,6 +1,6 @@
-# One-Pass Solitaire
+# One-Shot Solitaire
 
-A challenging Klondike variant with one pass through the stock and 4 FreeCell-style storage slots, plus an LLM benchmark suite.
+A challenging Klondike variant with one shot through the stock and 4 FreeCell-style storage slots, plus an LLM benchmark suite.
 
 ## Quick Start
 
@@ -39,7 +39,7 @@ uv run python -m benchmark --model o4-mini --games 10 --seed 42 --verbose
 
 Standard Klondike with two key differences:
 
-1. **One pass** — you get a single pass through the stock pile. No recycling.
+1. **One shot** — you get a single shot through the stock pile. No recycling.
 2. **4 storage slots** — FreeCell-style slots where any single card can be temporarily stashed, adding strategic depth.
 
 See [rules.md](rules.md) for the full rulebook.
@@ -47,7 +47,7 @@ See [rules.md](rules.md) for the full rulebook.
 ## Project Structure
 
 ```
-engine.py                 # Game logic (Card, OnePassSolitaire)
+engine.py                 # Game logic (Card, OneShotSolitaire)
 one_shot_solitaire.py     # CLI player
 one_shot_solitaire_gui.py # Pygame GUI
 rules.md                  # Full rulebook

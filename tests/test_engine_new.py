@@ -2,15 +2,15 @@
 
 import unittest
 
-from engine import SUITS, Card, OnePassSolitaire
+from engine import SUITS, Card, OneShotSolitaire
 
 
 class TestLegalMoves(unittest.TestCase):
     """Tests for the legal_moves method."""
 
-    def _empty_game(self) -> OnePassSolitaire:
+    def _empty_game(self) -> OneShotSolitaire:
         """Create an empty game state for testing."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -138,12 +138,12 @@ class TestLegalMoves(unittest.TestCase):
 
     def test_all_legal_moves_are_executable(self) -> None:
         """Every move from legal_moves() should succeed in step()."""
-        game = OnePassSolitaire(seed=42)
+        game = OneShotSolitaire(seed=42)
         for _ in range(5):
             game.step("draw", auto_move=False)
         moves = game.legal_moves()
         for move in moves:
-            test_game = OnePassSolitaire(seed=42)
+            test_game = OneShotSolitaire(seed=42)
             for _ in range(5):
                 test_game.step("draw", auto_move=False)
             success, err = test_game.step(move, auto_move=False)
@@ -153,9 +153,9 @@ class TestLegalMoves(unittest.TestCase):
 class TestIsGameOver(unittest.TestCase):
     """Tests for the is_game_over method."""
 
-    def _empty_game(self) -> OnePassSolitaire:
+    def _empty_game(self) -> OneShotSolitaire:
         """Create an empty game state for testing."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -209,20 +209,20 @@ class TestStateHash(unittest.TestCase):
 
     def test_same_state_same_hash(self) -> None:
         """Same seed should produce same hash."""
-        game1 = OnePassSolitaire(seed=42)
-        game2 = OnePassSolitaire(seed=42)
+        game1 = OneShotSolitaire(seed=42)
+        game2 = OneShotSolitaire(seed=42)
         assert game1.state_hash() == game2.state_hash()
 
     def test_different_state_different_hash(self) -> None:
         """Different states should produce different hashes."""
-        game1 = OnePassSolitaire(seed=42)
-        game2 = OnePassSolitaire(seed=42)
+        game1 = OneShotSolitaire(seed=42)
+        game2 = OneShotSolitaire(seed=42)
         game2.step("draw")
         assert game1.state_hash() != game2.state_hash()
 
     def test_hash_changes_after_move(self) -> None:
         """Hash should change after a move."""
-        game = OnePassSolitaire(seed=42)
+        game = OneShotSolitaire(seed=42)
         h1 = game.state_hash()
         game.step("draw")
         h2 = game.state_hash()
@@ -230,16 +230,16 @@ class TestStateHash(unittest.TestCase):
 
     def test_hash_is_int(self) -> None:
         """Hash should be an integer."""
-        game = OnePassSolitaire(seed=42)
+        game = OneShotSolitaire(seed=42)
         assert isinstance(game.state_hash(), int)
 
 
 class TestIsEndgame(unittest.TestCase):
     """Tests for the is_endgame method."""
 
-    def _empty_game(self) -> OnePassSolitaire:
+    def _empty_game(self) -> OneShotSolitaire:
         """Create an empty game state for testing."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -283,7 +283,7 @@ class TestStepAutoMoveParam(unittest.TestCase):
 
     def test_auto_move_true_moves_ace_to_foundation(self) -> None:
         """Auto-move should move ace to foundation after draw."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
@@ -295,7 +295,7 @@ class TestStepAutoMoveParam(unittest.TestCase):
 
     def test_auto_move_false_leaves_ace_in_waste(self) -> None:
         """Disabling auto-move should leave ace in waste."""
-        game = OnePassSolitaire(seed=1)
+        game = OneShotSolitaire(seed=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
