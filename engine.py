@@ -357,7 +357,7 @@ class OneShotSolitaire:
         self,
         move: str | tuple,
         *,
-        auto_move: bool = True,
+        auto_move: bool = False,
     ) -> tuple[bool, str | None]:
         """Execute a move. Return (success, error_message)."""
         if move == "draw":

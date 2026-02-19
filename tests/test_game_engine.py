@@ -163,7 +163,7 @@ class TestStepAutoMoveToFoundation(unittest.TestCase):
 
         # Put an Ace in stock so drawing it triggers auto-move
         game.stock = [Card("♠", "A", face_up=False)]
-        success, err = game.step("draw")
+        success, err = game.step("draw", auto_move=True)
         assert success
         assert err is None
         # Ace of spades should have been auto-moved to foundation index 0
@@ -188,7 +188,7 @@ class TestStepAutoMoveToFoundation(unittest.TestCase):
         game.tableau[0] = [Card("♥", "2", face_up=True)]
         game.stock = [Card("♠", "A", face_up=False)]
 
-        success, _err = game.step("draw")
+        success, _err = game.step("draw", auto_move=True)
         assert success
 
         spade_idx = SUITS.index("♠")

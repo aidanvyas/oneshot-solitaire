@@ -40,12 +40,15 @@ TITLE_FONT = pygame.font.SysFont("Arial", 24, bold=True)
 # Rules + hint button constants
 RULE_BUTTON_RECT = pygame.Rect(SCREEN_WIDTH - 110, SCREEN_HEIGHT - 50, 100, 35)
 HINT_BUTTON_RECT = pygame.Rect(SCREEN_WIDTH - 220, SCREEN_HEIGHT - 50, 100, 35)
+AUTO_BUTTON_RECT = pygame.Rect(SCREEN_WIDTH - 330, SCREEN_HEIGHT - 50, 100, 35)
 BUTTON_COLOR = (255, 255, 255)
 _ANTIALIAS = True
 MIN_NUMBERED_ITEM_LEN = 3
 WASTE_BADGE_THRESHOLD = 3
 RULE_BUTTON_TEXT = TITLE_FONT.render("Rules", _ANTIALIAS, BLACK)
 HINT_BUTTON_TEXT = TITLE_FONT.render("Hint", _ANTIALIAS, BLACK)
+AUTO_ON_COLOR = (196, 163, 90)
+AUTO_OFF_COLOR = (200, 200, 200)
 
 # Rules panel constants
 RULE_BOX_W = SCREEN_WIDTH - 220
@@ -182,6 +185,7 @@ class OneShotSolitaireGUI:
         self.auto_finish_timer = 0
         self.confetti: list[dict] = []
         self.confetti_started = False
+        self.auto_play_enabled = True
 
         self.rules_text = _load_rules()
         self.show_rules = False
@@ -205,6 +209,7 @@ class OneShotSolitaireGUI:
         self.auto_finish_timer = 0
         self.confetti = []
         self.confetti_started = False
+        self.auto_play_enabled = True
 
         self.rules_text = _load_rules()
         self.show_rules = False
@@ -683,7 +688,14 @@ class OneShotSolitaireGUI:
             )
 
     def _draw_buttons(self) -> None:
-        """Draw the hint and rules buttons."""
+        """Draw the auto, hint and rules buttons."""
+        # Auto button
+        auto_color = AUTO_ON_COLOR if self.auto_play_enabled else AUTO_OFF_COLOR
+        pygame.draw.rect(screen, BUTTON_COLOR, AUTO_BUTTON_RECT, border_radius=6)
+        pygame.draw.rect(screen, auto_color, AUTO_BUTTON_RECT, 2, border_radius=6)
+        auto_text = TITLE_FONT.render("Auto", _ANTIALIAS, auto_color)
+        screen.blit(auto_text, auto_text.get_rect(center=AUTO_BUTTON_RECT.center))
+
         pygame.draw.rect(
             screen,
             BUTTON_COLOR,
@@ -1199,8 +1211,15 @@ class OneShotSolitaireGUI:
             if self.game.tableau[idx] and not self.game.tableau[idx][-1].face_up:
                 self.game.tableau[idx][-1].flip()
 
+    def _maybe_auto_draw(self) -> None:
+        """Auto-draw from stock when waste is empty and auto-play is on."""
+        if self.auto_play_enabled and not self.game.waste and self.game.stock:
+            self.draw_card_from_stock()
+
     def _auto_finish_if_forced(self) -> None:
         """Start auto-finish when the endgame condition is met."""
+        if not self.auto_play_enabled:
+            return
         if self.auto_finish_active or self.game_won or self.game_over:
             return
         if not self.game.is_endgame():
@@ -1305,6 +1324,7 @@ class OneShotSolitaireGUI:
             self.game_won = True
         elif self.game.is_game_over():
             self.game_over = True
+        self._maybe_auto_draw()
 
     def handle_stock_click(self, pos: tuple[int, int]) -> bool:
         """Handle a click on the stock pile area."""
@@ -1318,21 +1338,32 @@ class OneShotSolitaireGUI:
             return True
         return False
 
-    def _handle_mouse_down(self, event: pygame.event.Event) -> None:
-        """Handle left mouse button down events."""
-        if event.button != 1:
-            return
-        if RULE_BUTTON_RECT.collidepoint(event.pos):
+    def _handle_button_click(self, pos: tuple[int, int]) -> bool:
+        """Handle clicks on the Auto, Rules and Hint buttons. Return True if handled."""
+        if AUTO_BUTTON_RECT.collidepoint(pos):
+            self.auto_play_enabled = not self.auto_play_enabled
+            if not self.auto_play_enabled:
+                self.auto_finish_active = False
+            return True
+        if RULE_BUTTON_RECT.collidepoint(pos):
             self.show_rules = not self.show_rules
             if self.show_rules:
                 self.show_hint = False
-            return
-        if HINT_BUTTON_RECT.collidepoint(event.pos):
+            return True
+        if HINT_BUTTON_RECT.collidepoint(pos):
             self.show_hint = not self.show_hint
             if self.show_hint:
                 self.show_rules = False
                 self.hint_text = self._format_legal_moves()
                 self.hint_scroll = 0
+            return True
+        return False
+
+    def _handle_mouse_down(self, event: pygame.event.Event) -> None:
+        """Handle left mouse button down events."""
+        if event.button != 1:
+            return
+        if self._handle_button_click(event.pos):
             return
         if self.show_rules:
             self.show_rules = False
@@ -1379,6 +1410,10 @@ class OneShotSolitaireGUI:
             self.reset_game()
         elif event.key == pygame.K_q:
             return False
+        elif event.key == pygame.K_a:
+            self.auto_play_enabled = not self.auto_play_enabled
+            if not self.auto_play_enabled:
+                self.auto_finish_active = False
         elif event.key == pygame.K_d:
             if not self.game_over and not self.game_won:
                 self.draw_card_from_stock()

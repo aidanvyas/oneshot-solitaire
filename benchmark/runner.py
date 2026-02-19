@@ -248,7 +248,7 @@ class BenchmarkRunner:
                 )
                 continue
 
-            success, err_msg = game.step(move)
+            success, err_msg = game.step(move, auto_move=True)
             if success:
                 draw_inc = 1 if move == "draw" else 0
                 return True, invalid_count, draw_inc
@@ -269,7 +269,7 @@ class BenchmarkRunner:
         Returns (should_continue, move_increment, draw_increment).
         """
         if game.stock:
-            game.step("draw")
+            game.step("draw", auto_move=True)
             if self.verbose:
                 console.print(
                     f"  Turn {turn_number}: Forced draw after max retries",

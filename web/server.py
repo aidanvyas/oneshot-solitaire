@@ -201,7 +201,6 @@ def _execute_stack_move(
     if column and not column[-1].face_up:
         column[-1].flip()
 
-    game.auto_move_to_foundation()
     return True, None
 
 

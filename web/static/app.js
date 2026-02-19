@@ -17,6 +17,7 @@ let gameId = null;
 let gameState = null;
 let autoFinishInterval = null;
 let statusTimer = null;
+let autoPlayEnabled = true;
 
 // --- Drag state ---
 let dragCards = [];
@@ -64,6 +65,8 @@ async function newGame(seed) {
   stopAutoFinish();
   stopConfetti();
   hideGameOver();
+  autoPlayEnabled = true;
+  updateAutoButton();
   const body = seed != null ? { seed } : {};
   const data = await api("POST", "/api/new-game", body);
   gameId = data.game_id;
@@ -89,6 +92,8 @@ async function makeMove(movePayload) {
     render();
     if (!data.success) {
       showStatus(data.error || "Invalid move");
+    } else {
+      maybeAutoDraw();
     }
     checkGameEnd();
   } catch (e) {
@@ -103,7 +108,7 @@ function checkGameEnd() {
     startConfetti();
   } else if (gameState.is_over) {
     showGameOver(false);
-  } else if (gameState.is_endgame) {
+  } else if (gameState.is_endgame && autoPlayEnabled) {
     startAutoFinish();
   }
 }
@@ -403,6 +408,26 @@ function executeDrop(target) {
   }
 }
 
+// --- Auto-draw ---
+function maybeAutoDraw() {
+  if (!autoPlayEnabled || !gameState) return;
+  if (gameState.waste_count === 0 && gameState.stock_count > 0) {
+    makeMove({ type: "draw" });
+  }
+}
+
+function updateAutoButton() {
+  const btn = document.getElementById("btn-auto");
+  if (!btn) return;
+  btn.className = autoPlayEnabled ? "toggle-on" : "toggle-off";
+}
+
+function toggleAutoPlay() {
+  autoPlayEnabled = !autoPlayEnabled;
+  updateAutoButton();
+  if (!autoPlayEnabled) stopAutoFinish();
+}
+
 // --- Auto-finish ---
 function startAutoFinish() {
   if (autoFinishInterval) return;
@@ -506,6 +531,7 @@ document.getElementById("btn-rules").addEventListener("click", async () => {
   }
 });
 
+document.getElementById("btn-auto").addEventListener("click", toggleAutoPlay);
 document.getElementById("btn-new").addEventListener("click", () => newGame());
 
 // --- Simple markdown to HTML ---
@@ -577,6 +603,8 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "d" || e.key === "D") {
     if (gameState && gameState.stock_count > 0) makeMove({ type: "draw" });
+  } else if (e.key === "a" || e.key === "A") {
+    toggleAutoPlay();
   } else if (e.key === "r" || e.key === "R") {
     resetGame();
   }
