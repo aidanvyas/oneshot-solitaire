@@ -98,7 +98,14 @@ fn apply_tableau_to_foundation(belief: &BeliefState, src_col: u8, hash: u64) -> 
     debug_assert_ne!(card, NO_CARD);
     let suit = card_suit(card);
     gs.foundation_top[suit as usize] = card;
-    remove_tableau_top(gs, src_col, &mut b.unknown_pool, hash)
+    gs.tableau_top[src_col as usize] = NO_CARD;
+    if gs.tableau_hidden_count[src_col as usize] > 0 {
+        gs.tableau_hidden_count[src_col as usize] -= 1;
+        ApplyResult::NeedsFlip { partial: b, hash, col: src_col }
+    } else {
+        gs.tableau_empty[src_col as usize] = true;
+        ApplyResult::Complete(b, hash)
+    }
 }
 
 fn apply_tableau_to_tableau(belief: &BeliefState, src_col: u8, dest_col: u8, hash: u64) -> ApplyResult {
@@ -168,40 +175,6 @@ fn place_on_tableau(gs: &mut GameState, card: Card, col: u8) {
     gs.tableau_empty[col as usize] = false;
     // hidden_count stays as-is — we're placing on top of existing face-up card
 }
-
-/// Remove the face-up top from a tableau column.
-/// If there are face-down cards below, returns NeedsFlip.
-/// If the column becomes empty, marks it empty and returns Complete.
-/// NOTE: caller must handle the card removal separately before calling.
-fn remove_tableau_top(gs: &mut GameState, col: u8, _pool: &mut CardSet, hash: u64) -> ApplyResult {
-    gs.tableau_top[col as usize] = NO_CARD;
-    if gs.tableau_hidden_count[col as usize] > 0 {
-        gs.tableau_hidden_count[col as usize] -= 1;
-        // Signal that a flip is needed — return a dummy Complete so the
-        // caller can use the result. This function is only called from
-        // apply_tableau_to_foundation, which handles the flip separately.
-        // Actually, we return a sentinel here; see the caller.
-        // We abuse ApplyResult::Complete with the partial state as a marker.
-        // The caller (apply_tableau_to_foundation) will check and wrap properly.
-        // Simplest: just return Complete and let apply_tableau_to_foundation
-        // re-check for NeedsFlip by inspecting the state after the call.
-        // This is handled inline in apply_tableau_to_foundation below.
-        let _ = hash;
-        ApplyResult::Complete(BeliefState { visible: gs.clone(), unknown_pool: 0 }, hash)
-    } else {
-        gs.tableau_empty[col as usize] = true;
-        ApplyResult::Complete(BeliefState { visible: gs.clone(), unknown_pool: 0 }, hash)
-    }
-}
-
-// Re-implement apply_tableau_to_foundation cleanly without the helper confusion:
-// (The helper above is only called from one place now — but we already re-implemented inline.)
-// The helper remove_tableau_top is used only by apply_tableau_to_foundation below as a
-// stand-in to suppress "unused" warnings. Let's just not export it and inline everything.
-
-// The apply_tableau_to_foundation already uses an inline approach. The remove_tableau_top
-// function above is a bit awkward; let's suppress the dead code warning.
-
 
 // ── Chance node: assign a revealed card ───────────────────────────────────────
 
@@ -316,6 +289,47 @@ mod tests {
                 assert_eq!(new_belief.visible.storage[0], sq);
             }
             _ => panic!("Expected Complete"),
+        }
+    }
+
+    #[test]
+    fn tableau_to_foundation_no_hidden_complete() {
+        let mut gs = empty_gs();
+        let sa = make_card(SUIT_SPADES, 0); // Ace → goes to empty foundation
+        gs.tableau_top[0] = sa;
+        gs.tableau_empty[0] = false;
+        gs.tableau_hidden_count[0] = 0;
+        let belief = make_belief(gs);
+        let result = apply_move(&belief, Move::TableauToFoundation(0), 0);
+        match result {
+            ApplyResult::Complete(new_belief, _) => {
+                assert_eq!(new_belief.visible.tableau_top[0], NO_CARD);
+                assert!(new_belief.visible.tableau_empty[0]);
+                assert_eq!(new_belief.visible.foundation_top[SUIT_SPADES as usize], sa);
+            }
+            _ => panic!("Expected Complete"),
+        }
+    }
+
+    #[test]
+    fn tableau_to_foundation_with_hidden_needs_flip() {
+        let mut gs = empty_gs();
+        let sa = make_card(SUIT_SPADES, 0); // Ace → goes to empty foundation
+        gs.tableau_top[1] = sa;
+        gs.tableau_empty[1] = false;
+        gs.tableau_hidden_count[1] = 2; // 2 face-down cards below
+        let belief = make_belief(gs);
+        let result = apply_move(&belief, Move::TableauToFoundation(1), 0);
+        match result {
+            ApplyResult::NeedsFlip { partial, col, .. } => {
+                assert_eq!(col, 1);
+                assert_eq!(partial.visible.tableau_top[1], NO_CARD);
+                assert_eq!(partial.visible.tableau_hidden_count[1], 1);
+                assert_eq!(partial.visible.foundation_top[SUIT_SPADES as usize], sa);
+                // unknown_pool must be preserved (not zeroed)
+                assert_eq!(partial.unknown_pool, belief.unknown_pool);
+            }
+            _ => panic!("Expected NeedsFlip"),
         }
     }
 
