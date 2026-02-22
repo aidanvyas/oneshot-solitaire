@@ -6,7 +6,12 @@ from pathlib import Path
 
 from rich.console import Console
 
-from benchmark.runner import BenchmarkConfig, BenchmarkResults, BenchmarkRunner
+from benchmark.runner import (
+    BenchmarkConfig,
+    BenchmarkResults,
+    BenchmarkRunner,
+    SolverBenchmarkRunner,
+)
 
 console = Console()
 
@@ -51,8 +56,18 @@ def _print_results(results: BenchmarkResults) -> None:
     console.print(f"Total tokens:         {results.total_tokens:,}")
 
 
+def _build_runner(
+    args: argparse.Namespace,
+    config: BenchmarkConfig,
+) -> BenchmarkRunner | SolverBenchmarkRunner:
+    """Construct the appropriate runner based on --mode."""
+    if args.mode == "solver":
+        return SolverBenchmarkRunner(config, solver_timeout_ms=args.solver_timeout_ms)
+    return BenchmarkRunner(config)
+
+
 def main() -> None:
-    """Parse arguments and run the LLM benchmark."""
+    """Parse arguments and run the benchmark."""
     parser = argparse.ArgumentParser(
         description="One-Shot Solitaire LLM Benchmark",
     )
@@ -93,8 +108,14 @@ def main() -> None:
     parser.add_argument(
         "--mode",
         default="text",
-        choices=["text", "tools"],
-        help="text or tools (function calling)",
+        choices=["text", "tools", "solver"],
+        help="text, tools (function calling), or solver (Rust expectimax)",
+    )
+    parser.add_argument(
+        "--solver-timeout-ms",
+        type=int,
+        default=5000,
+        help="Per-move timeout for solver mode in milliseconds (default: 5000)",
     )
     parser.add_argument(
         "--verbose",
@@ -120,7 +141,7 @@ def main() -> None:
         mode=args.mode,
         verbose=args.verbose,
     )
-    runner = BenchmarkRunner(config)
+    runner = _build_runner(args, config)
 
     _print_header(args)
 

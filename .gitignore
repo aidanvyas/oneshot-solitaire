@@ -21,5 +21,8 @@ dist/
 # Results
 results/
 
+# Rust
+solver/target/
+
 # OS
 .DS_Store

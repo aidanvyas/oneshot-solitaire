@@ -9,6 +9,7 @@ from rich.console import Console
 
 from benchmark.llm_player import LLMPlayer
 from benchmark.llm_player_tools import ToolCallPlayer
+from benchmark.solver_player import SolverPlayer
 from benchmark.text_protocol import parse_move, render_game_state
 from engine import OneShotSolitaire
 
@@ -375,3 +376,70 @@ class BenchmarkRunner:
             results.append(result)
 
         return BenchmarkResults(results=results, model=self.model)
+
+
+class SolverBenchmarkRunner:
+    """Runs benchmark games using the Rust expectimax solver instead of an LLM."""
+
+    def __init__(self, config: BenchmarkConfig, solver_timeout_ms: int = 5000) -> None:
+        """Initialise from a BenchmarkConfig, ignoring LLM-specific fields."""
+        self.games = config.games
+        self.start_game_id = config.start_game_id
+        self.max_moves = config.max_moves
+        self.verbose = config.verbose
+        self.solver_timeout_ms = solver_timeout_ms
+
+    def play_one_game(self, game_id: int) -> GameResult:
+        """Play a single game with the solver and return the result."""
+        game = OneShotSolitaire(game_id=game_id)
+        total_moves = 0
+        draw_count = 0
+
+        with SolverPlayer(timeout_ms=self.solver_timeout_ms) as player:
+            while total_moves < self.max_moves:
+                if game.is_game_won() or game.is_game_over():
+                    break
+
+                move, _ = player.get_move(game)
+
+                if move is None:
+                    break
+
+                success, _ = game.step(move, auto_move=True)
+                if success:
+                    total_moves += 1
+                    if move == "draw":
+                        draw_count += 1
+
+                if self.verbose:
+                    console.print(
+                        f"  Move {total_moves}: {move}"
+                        f" | win_prob={player.last_win_probability:.3f}",
+                    )
+
+        return GameResult(
+            game_id=game_id,
+            won=game.is_game_won(),
+            foundation_cards=game.foundation_count(),
+            total_moves=total_moves,
+            invalid_moves=0,
+            draw_count=draw_count,
+        )
+
+    def run(self) -> BenchmarkResults:
+        """Run all benchmark games and return aggregated results."""
+        results: list[GameResult] = []
+        for i in range(self.games):
+            gid = self.start_game_id + i
+            console.print(
+                f"Game {i + 1}/{self.games} (game_id={gid})...",
+                end=" ",
+            )
+            result = self.play_one_game(gid)
+            status = "WON" if result.won else f"{result.foundation_cards}/52"
+            console.print(
+                f"{status} | moves={result.total_moves} draws={result.draw_count}",
+            )
+            results.append(result)
+
+        return BenchmarkResults(results=results, model="solver")
