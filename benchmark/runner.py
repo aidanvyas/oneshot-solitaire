@@ -157,7 +157,9 @@ class BenchmarkConfig:
     start_game_id: int = 42
     max_moves: int = 200
     max_retries: int = 3
-    reasoning_effort: str = "low"
+    reasoning_effort: str = "high"
+    service_tier: str = "flex"
+    max_output_tokens: int = 128_000
     mode: str = "text"
     verbose: bool = field(default=False, kw_only=True)
 
@@ -179,6 +181,31 @@ class _TokenAccumulator:
         self.output_tokens += usage["output_tokens"]
 
 
+def _auto_finish(game: OneShotSolitaire) -> int:
+    """Auto-finish: move all possible cards to foundations (endgame only).
+
+    Matches the web UI auto-finish behaviour. Returns the number of
+    foundation moves made.
+    """
+    moves_made = 0
+    while True:
+        moved = False
+        for move in game.legal_moves():
+            is_foundation = move == "foundation" or (
+                isinstance(move, tuple)
+                and move[0] == "move"
+                and move[2][0] == "foundation"
+            )
+            if is_foundation:
+                game.step(move)
+                moves_made += 1
+                moved = True
+                break
+        if not moved:
+            break
+    return moves_made
+
+
 class BenchmarkRunner:
     """Runs multiple solitaire games using an LLM player."""
 
@@ -190,6 +217,8 @@ class BenchmarkRunner:
         self.max_moves = config.max_moves
         self.max_retries = config.max_retries
         self.reasoning_effort = config.reasoning_effort
+        self.service_tier = config.service_tier
+        self.max_output_tokens = config.max_output_tokens
         self.mode = config.mode
         self.verbose = config.verbose
 
@@ -200,11 +229,15 @@ class BenchmarkRunner:
                 model=self.model,
                 max_retries=self.max_retries,
                 reasoning_effort=self.reasoning_effort,
+                service_tier=self.service_tier,
+                max_output_tokens=self.max_output_tokens,
             )
         return LLMPlayer(
             model=self.model,
             max_retries=self.max_retries,
             reasoning_effort=self.reasoning_effort,
+            service_tier=self.service_tier,
+            max_output_tokens=self.max_output_tokens,
         )
 
     def _try_get_valid_move(
@@ -249,9 +282,13 @@ class BenchmarkRunner:
                 )
                 continue
 
-            success, err_msg = game.step(move, auto_move=True)
+            success, err_msg = game.step(move)
             if success:
                 draw_inc = 1 if move == "draw" else 0
+                # Auto-draw: match web UI behavior
+                if not game.waste and game.stock:
+                    game.step("draw")
+                    draw_inc += 1
                 return True, invalid_count, draw_inc
 
             invalid_count += 1
@@ -270,7 +307,7 @@ class BenchmarkRunner:
         Returns (should_continue, move_increment, draw_increment).
         """
         if game.stock:
-            game.step("draw", auto_move=True)
+            game.step("draw")
             if self.verbose:
                 console.print(
                     f"  Turn {turn_number}: Forced draw after max retries",
@@ -297,6 +334,11 @@ class BenchmarkRunner:
         try:
             while total_moves < self.max_moves:
                 if game.is_game_won() or game.is_game_over():
+                    break
+
+                # Auto-finish: when all cards are face-up, auto-complete
+                if game.is_endgame():
+                    total_moves += _auto_finish(game)
                     break
 
                 turn_number += 1
@@ -400,15 +442,23 @@ class SolverBenchmarkRunner:
                 if game.is_game_won() or game.is_game_over():
                     break
 
+                if game.is_endgame():
+                    total_moves += _auto_finish(game)
+                    break
+
                 move, _ = player.get_move(game)
 
                 if move is None:
                     break
 
-                success, _ = game.step(move, auto_move=True)
+                success, _ = game.step(move)
                 if success:
                     total_moves += 1
                     if move == "draw":
+                        draw_count += 1
+                    # Auto-draw: match web UI behavior
+                    if not game.waste and game.stock:
+                        game.step("draw")
                         draw_count += 1
 
                 if self.verbose:

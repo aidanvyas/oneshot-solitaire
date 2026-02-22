@@ -177,13 +177,17 @@ class ToolCallPlayer:
         self,
         model: str = "gpt-5-nano",
         max_retries: int = 3,
-        reasoning_effort: str = "low",
+        reasoning_effort: str = "high",
+        service_tier: str = "flex",
+        max_output_tokens: int = 128_000,
     ) -> None:
         """Initialize the tool-calling player with model configuration."""
         self.client = openai.OpenAI()
         self.model = model
         self.max_retries = max_retries
         self.reasoning_effort = reasoning_effort
+        self.service_tier = service_tier
+        self.max_output_tokens = max_output_tokens
         self.previous_response_id: str | None = None
 
     def get_move(
@@ -204,7 +208,10 @@ class ToolCallPlayer:
             "tools": TOOLS,
             "tool_choice": "required",
             "previous_response_id": self.previous_response_id,
+            "max_output_tokens": self.max_output_tokens,
         }
+        if self.service_tier:
+            kwargs["service_tier"] = self.service_tier
         if self.reasoning_effort:
             kwargs["reasoning"] = {"effort": self.reasoning_effort}
 

@@ -26,6 +26,10 @@ def _print_header(args: argparse.Namespace) -> None:
         f"Max moves: {args.max_moves} | Max retries: {args.max_retries}"
         f" | Mode: {args.mode}",
     )
+    console.print(
+        f"Reasoning: {args.reasoning_effort} | Service tier: {args.service_tier}"
+        f" | Max output tokens: {args.max_output_tokens}",
+    )
     console.print()
 
 
@@ -102,8 +106,19 @@ def main() -> None:
     )
     parser.add_argument(
         "--reasoning-effort",
-        default="low",
+        default="high",
         help="Reasoning effort: low, medium, high",
+    )
+    parser.add_argument(
+        "--service-tier",
+        default="flex",
+        help="OpenAI service tier (e.g. flex, default)",
+    )
+    parser.add_argument(
+        "--max-output-tokens",
+        type=int,
+        default=128_000,
+        help="Max output tokens per API call (default: 128000)",
     )
     parser.add_argument(
         "--mode",
@@ -138,6 +153,8 @@ def main() -> None:
         max_moves=args.max_moves,
         max_retries=args.max_retries,
         reasoning_effort=args.reasoning_effort,
+        service_tier=args.service_tier,
+        max_output_tokens=args.max_output_tokens,
         mode=args.mode,
         verbose=args.verbose,
     )

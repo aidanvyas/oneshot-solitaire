@@ -140,13 +140,13 @@ class TestLegalMoves(unittest.TestCase):
         """Every move from legal_moves() should succeed in step()."""
         game = OneShotSolitaire(game_id=42)
         for _ in range(5):
-            game.step("draw", auto_move=False)
+            game.step("draw")
         moves = game.legal_moves()
         for move in moves:
             test_game = OneShotSolitaire(game_id=42)
             for _ in range(5):
-                test_game.step("draw", auto_move=False)
-            success, err = test_game.step(move, auto_move=False)
+                test_game.step("draw")
+            success, err = test_game.step(move)
             assert success, f"Move {move} should be legal but got error: {err}"
 
 
@@ -276,36 +276,6 @@ class TestIsEndgame(unittest.TestCase):
         """Endgame should be true on empty tableau with empty stock."""
         game = self._empty_game()
         assert game.is_endgame()
-
-
-class TestStepAutoMoveParam(unittest.TestCase):
-    """Tests for the auto_move parameter of step()."""
-
-    def test_auto_move_true_moves_ace_to_foundation(self) -> None:
-        """Auto-move should move ace to foundation after draw."""
-        game = OneShotSolitaire(game_id=1)
-        game.tableau = [[] for _ in range(7)]
-        game.foundations = [[] for _ in range(4)]
-        game.storage = [None] * 4
-        game.waste = []
-        game.stock = [Card("\u2660", "A")]
-        game.step("draw", auto_move=True)
-        spade_idx = SUITS.index("\u2660")
-        assert len(game.foundations[spade_idx]) == 1
-
-    def test_auto_move_false_leaves_ace_in_waste(self) -> None:
-        """Disabling auto-move should leave ace in waste."""
-        game = OneShotSolitaire(game_id=1)
-        game.tableau = [[] for _ in range(7)]
-        game.foundations = [[] for _ in range(4)]
-        game.storage = [None] * 4
-        game.waste = []
-        game.stock = [Card("\u2660", "A")]
-        game.step("draw", auto_move=False)
-        spade_idx = SUITS.index("\u2660")
-        assert len(game.foundations[spade_idx]) == 0
-        assert len(game.waste) == 1
-        assert game.waste[0].value == "A"
 
 
 if __name__ == "__main__":

@@ -177,7 +177,7 @@ def test_multiple_sequential_queries() -> None:
             assert move is not None
             legal = game.legal_moves()
             assert move in legal
-            game.step(move, auto_move=True)
+            game.step(move)
 
 
 @solver_required

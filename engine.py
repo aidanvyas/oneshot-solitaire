@@ -121,66 +121,20 @@ class OneShotSolitaire:
             and card.get_value_index() == top_card.get_value_index() + 1
         )
 
-    def _auto_move_tableau(self) -> bool:
-        """Try to auto-move a tableau top card to its foundation."""
-        for _col_idx, column in enumerate(self.tableau):
-            if column and column[-1].face_up:
-                card = column[-1]
-                foundation_idx = SUITS.index(card.suit)
-                if self.is_valid_foundation_move(card, foundation_idx):
-                    self.foundations[foundation_idx].append(column.pop())
-                    if column and not column[-1].face_up:
-                        column[-1].flip()
-                    return True
-        return False
-
-    def _auto_move_storage(self) -> bool:
-        """Try to auto-move a storage card to its foundation."""
-        for storage_idx, card in enumerate(self.storage):
-            if card:
-                foundation_idx = SUITS.index(card.suit)
-                if self.is_valid_foundation_move(card, foundation_idx):
-                    self.foundations[foundation_idx].append(card)
-                    self.storage[storage_idx] = None
-                    return True
-        return False
-
-    def _auto_move_waste(self) -> bool:
-        """Try to auto-move the waste top card to its foundation."""
-        if self.waste:
-            card = self.waste[-1]
-            foundation_idx = SUITS.index(card.suit)
-            if self.is_valid_foundation_move(card, foundation_idx):
-                self.foundations[foundation_idx].append(self.waste.pop())
-                return True
-        return False
-
-    def auto_move_to_foundation(self) -> None:
-        """Automatically move eligible cards to foundations where possible."""
-        moved = True
-        while moved:
-            moved = (
-                self._auto_move_tableau()
-                or self._auto_move_storage()
-                or self._auto_move_waste()
-            )
-
     def foundation_count(self) -> int:
         """Return the total number of cards in all foundation piles."""
         return sum(len(pile) for pile in self.foundations)
 
-    def _step_draw(self, *, auto_move: bool) -> tuple[bool, str | None]:
+    def _step_draw(self) -> tuple[bool, str | None]:
         """Handle the 'draw' move."""
         if not self.stock:
             return (False, "No more cards in the stock pile")
         card = self.stock.pop()
         card.face_up = True
         self.waste.append(card)
-        if auto_move:
-            self.auto_move_to_foundation()
         return (True, None)
 
-    def _step_foundation(self, *, auto_move: bool) -> tuple[bool, str | None]:
+    def _step_foundation(self) -> tuple[bool, str | None]:
         """Handle the 'foundation' move (waste to foundation)."""
         if not self.waste:
             return (False, "No card to move")
@@ -188,16 +142,12 @@ class OneShotSolitaire:
         for i, suit in enumerate(SUITS):
             if card.suit == suit and self.is_valid_foundation_move(card, i):
                 self.foundations[i].append(self.waste.pop())
-                if auto_move:
-                    self.auto_move_to_foundation()
                 return (True, None)
         return (False, "Cannot move this card to any foundation pile")
 
     def _step_tableau(
         self,
         col: int,
-        *,
-        auto_move: bool,
     ) -> tuple[bool, str | None]:
         """Handle waste-to-tableau move."""
         if not self.waste:
@@ -205,16 +155,12 @@ class OneShotSolitaire:
         card = self.waste[-1]
         if self.is_valid_tableau_move(card, col):
             self.tableau[col].append(self.waste.pop())
-            if auto_move:
-                self.auto_move_to_foundation()
             return (True, None)
         return (False, "Invalid move to tableau")
 
     def _step_storage(
         self,
         space: int,
-        *,
-        auto_move: bool,
     ) -> tuple[bool, str | None]:
         """Handle waste-to-storage move."""
         if not self.waste:
@@ -223,8 +169,6 @@ class OneShotSolitaire:
             return (False, "Invalid storage space")
         if self.storage[space] is None:
             self.storage[space] = self.waste.pop()
-            if auto_move:
-                self.auto_move_to_foundation()
             return (True, None)
         return (False, "Storage space is already occupied")
 
@@ -275,8 +219,6 @@ class OneShotSolitaire:
         source: tuple[str, int],
         card: Card,
         col: int,
-        *,
-        auto_move: bool,
     ) -> tuple[bool, str | None]:
         """Handle move-to-tableau destination."""
         if not self.is_valid_tableau_move(card, col):
@@ -289,16 +231,12 @@ class OneShotSolitaire:
         else:
             self.tableau[col].append(self.storage[source[1]])
             self.storage[source[1]] = None
-        if auto_move:
-            self.auto_move_to_foundation()
         return (True, None)
 
     def _step_move_to_storage(
         self,
         source: tuple[str, int],
         space: int,
-        *,
-        auto_move: bool,
     ) -> tuple[bool, str | None]:
         """Handle move-to-storage destination."""
         if self.storage[space] is not None:
@@ -309,16 +247,12 @@ class OneShotSolitaire:
         else:
             self.storage[space] = self.storage[source[1]]
             self.storage[source[1]] = None
-        if auto_move:
-            self.auto_move_to_foundation()
         return (True, None)
 
     def _step_move_to_foundation(
         self,
         source: tuple[str, int],
         card: Card,
-        *,
-        auto_move: bool,
     ) -> tuple[bool, str | None]:
         """Handle move-to-foundation destination."""
         suit_idx = SUITS.index(card.suit)
@@ -330,15 +264,11 @@ class OneShotSolitaire:
         else:
             self.foundations[suit_idx].append(self.storage[source[1]])
             self.storage[source[1]] = None
-        if auto_move:
-            self.auto_move_to_foundation()
         return (True, None)
 
     def _step_move(
         self,
         move: tuple,
-        *,
-        auto_move: bool,
     ) -> tuple[bool, str | None]:
         """Handle compound move commands (source -> destination)."""
         source = move[1]
@@ -349,43 +279,28 @@ class OneShotSolitaire:
             return (False, err)
 
         if destination[0] == "tableau":
-            return self._step_move_to_tableau(
-                source,
-                card,
-                destination[1],
-                auto_move=auto_move,
-            )
+            return self._step_move_to_tableau(source, card, destination[1])
         if destination[0] == "storage":
-            return self._step_move_to_storage(
-                source,
-                destination[1],
-                auto_move=auto_move,
-            )
+            return self._step_move_to_storage(source, destination[1])
         if destination[0] == "foundation":
-            return self._step_move_to_foundation(
-                source,
-                card,
-                auto_move=auto_move,
-            )
+            return self._step_move_to_foundation(source, card)
         return (False, "Invalid destination")
 
     def step(
         self,
         move: str | tuple,
-        *,
-        auto_move: bool = False,
     ) -> tuple[bool, str | None]:
         """Execute a move. Return (success, error_message)."""
         if move == "draw":
-            result = self._step_draw(auto_move=auto_move)
+            result = self._step_draw()
         elif move == "foundation":
-            result = self._step_foundation(auto_move=auto_move)
+            result = self._step_foundation()
         elif isinstance(move, tuple) and move[0] == "tableau":
-            result = self._step_tableau(move[1], auto_move=auto_move)
+            result = self._step_tableau(move[1])
         elif isinstance(move, tuple) and move[0] == "storage":
-            result = self._step_storage(move[1], auto_move=auto_move)
+            result = self._step_storage(move[1])
         elif isinstance(move, tuple) and move[0] == "move":
-            result = self._step_move(move, auto_move=auto_move)
+            result = self._step_move(move)
         else:
             return (False, "Unknown move")
 

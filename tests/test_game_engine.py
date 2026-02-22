@@ -66,12 +66,8 @@ class TestStepDraw(unittest.TestCase):
         assert success
         assert err is None
         assert len(game.stock) == stock_len_before - 1
-        assert (
-            len(game.waste) >= waste_len_before + 1
-        )  # >= because auto_move may consume it
-        # The drawn card should be face up (if it wasn't auto-moved)
-        if game.waste:
-            assert game.waste[-1].face_up
+        assert len(game.waste) == waste_len_before + 1
+        assert game.waste[-1].face_up
 
     def test_draw_from_empty_stock_returns_error(self) -> None:
         """Verify that drawing from empty stock returns an error."""
@@ -150,54 +146,6 @@ class TestStepInvalidMoves(unittest.TestCase):
         success, err = game.step("nonexistent")
         assert not success
         assert err is not None
-
-
-class TestStepAutoMoveToFoundation(unittest.TestCase):
-    """Tests for automatic card movement to foundations."""
-
-    def test_ace_auto_moves_to_foundation(self) -> None:
-        """Verify that an ace drawn from stock auto-moves to foundation."""
-        game = OneShotSolitaire(game_id=1)
-        # Clear state for controlled test
-        game.tableau = [[] for _ in range(7)]
-        game.foundations = [[] for _ in range(4)]
-        game.storage = [None] * 4
-        game.waste = []
-
-        # Put an Ace in stock so drawing it triggers auto-move
-        game.stock = [Card("♠", "A", face_up=False)]
-        success, err = game.step("draw", auto_move=True)
-        assert success
-        assert err is None
-        # Ace of spades should have been auto-moved to foundation index 0
-        spade_idx = SUITS.index("♠")
-        assert len(game.foundations[spade_idx]) == 1
-        assert game.foundations[spade_idx][0].value == "A"
-
-    def test_sequential_auto_move(self) -> None:
-        """Verify that sequential auto-moves chain correctly."""
-        game = OneShotSolitaire(game_id=1)
-        game.tableau = [[] for _ in range(7)]
-        game.foundations = [[] for _ in range(4)]
-        game.storage = [None] * 4
-        game.waste = []
-
-        # Pre-place Ace of hearts on foundation
-        heart_idx = SUITS.index("♥")
-        game.foundations[heart_idx] = [Card("♥", "A", face_up=True)]
-
-        # Put 2 of hearts on tableau and Ace of spades in stock.
-        # Drawing Ace should auto-move it, then 2 of hearts chains.
-        game.tableau[0] = [Card("♥", "2", face_up=True)]
-        game.stock = [Card("♠", "A", face_up=False)]
-
-        success, _err = game.step("draw", auto_move=True)
-        assert success
-
-        spade_idx = SUITS.index("♠")
-        assert len(game.foundations[spade_idx]) == 1
-        expected_hearts = 2
-        assert len(game.foundations[heart_idx]) == expected_hearts
 
 
 class TestFoundationCount(unittest.TestCase):
@@ -547,21 +495,21 @@ class TestIsGameWon(unittest.TestCase):
         assert not game.is_game_won()
 
 
-class TestDefaultAutoMoveFalse(unittest.TestCase):
-    """Tests verifying auto_move defaults to False."""
+class TestDrawLeavesAceInWaste(unittest.TestCase):
+    """Verify draw never auto-moves aces to foundation."""
 
-    def test_draw_without_auto_move_leaves_ace_in_waste(self) -> None:
-        """Default step('draw') no longer auto-moves aces to foundation."""
+    def test_draw_leaves_ace_in_waste(self) -> None:
+        """Drawing an ace leaves it in the waste pile."""
         game = OneShotSolitaire(game_id=1)
         game.tableau = [[] for _ in range(7)]
         game.foundations = [[] for _ in range(4)]
         game.storage = [None] * 4
         game.waste = []
-        game.stock = [Card("♠", "A", face_up=False)]
+        game.stock = [Card("\u2660", "A", face_up=False)]
 
-        game.step("draw")  # auto_move defaults to False
+        game.step("draw")
 
-        spade_idx = SUITS.index("♠")
+        spade_idx = SUITS.index("\u2660")
         assert len(game.foundations[spade_idx]) == 0
         assert len(game.waste) == 1
         assert game.waste[0].value == "A"
@@ -697,7 +645,7 @@ class TestFullGamePlaythrough(unittest.TestCase):
                 break
             # Prefer non-draw moves to exercise more code paths
             move = next((m for m in moves if m != "draw"), moves[0])
-            success, err = game.step(move, auto_move=True)
+            success, err = game.step(move)
             assert success, f"Legal move {move} failed: {err}"
             moves_made += 1
 
