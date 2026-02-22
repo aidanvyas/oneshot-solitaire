@@ -98,6 +98,7 @@ def _serialize_state(game: OneShotSolitaire) -> dict[str, Any]:
         "foundation_count": game.foundation_count(),
         "is_won": game.is_game_won(),
         "is_over": game.is_game_over(),
+        "is_repetition_draw": game.is_repetition_draw(),
         "is_endgame": game.is_endgame(),
     }
 

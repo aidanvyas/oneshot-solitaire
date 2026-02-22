@@ -14,6 +14,7 @@ NUM_STORAGE_SLOTS = 4
 NUM_FOUNDATION_PILES = 4
 FULL_DECK_SIZE = 52
 CARDS_PER_SUIT = 13
+REPETITION_LIMIT = 3
 
 
 class Card:
@@ -70,6 +71,7 @@ class OneShotSolitaire:
         self.stock: list[Card] = []
         self.waste: list[Card] = []
         self.moved_card: Card | None = None
+        self.state_history: dict[int, int] = {}
 
         deck = [Card(suit, value) for suit in SUITS for value in VALUES]
         random.Random(self.game_id).shuffle(deck)
@@ -87,6 +89,9 @@ class OneShotSolitaire:
         card = self.stock.pop()
         card.face_up = True
         self.waste.append(card)
+
+        # Record the initial board state.
+        self.state_history[self.state_hash()] = 1
 
     def is_valid_tableau_move(self, card: Card, destination_col: int) -> bool:
         """Check if a card can be placed on a tableau column."""
@@ -372,21 +377,23 @@ class OneShotSolitaire:
     ) -> tuple[bool, str | None]:
         """Execute a move. Return (success, error_message)."""
         if move == "draw":
-            return self._step_draw(auto_move=auto_move)
+            result = self._step_draw(auto_move=auto_move)
+        elif move == "foundation":
+            result = self._step_foundation(auto_move=auto_move)
+        elif isinstance(move, tuple) and move[0] == "tableau":
+            result = self._step_tableau(move[1], auto_move=auto_move)
+        elif isinstance(move, tuple) and move[0] == "storage":
+            result = self._step_storage(move[1], auto_move=auto_move)
+        elif isinstance(move, tuple) and move[0] == "move":
+            result = self._step_move(move, auto_move=auto_move)
+        else:
+            return (False, "Unknown move")
 
-        if move == "foundation":
-            return self._step_foundation(auto_move=auto_move)
+        if result[0]:
+            h = self.state_hash()
+            self.state_history[h] = self.state_history.get(h, 0) + 1
 
-        if isinstance(move, tuple) and move[0] == "tableau":
-            return self._step_tableau(move[1], auto_move=auto_move)
-
-        if isinstance(move, tuple) and move[0] == "storage":
-            return self._step_storage(move[1], auto_move=auto_move)
-
-        if isinstance(move, tuple) and move[0] == "move":
-            return self._step_move(move, auto_move=auto_move)
-
-        return (False, "Unknown move")
+        return result
 
     def is_game_won(self) -> bool:
         """Check if all cards are in the foundations."""
@@ -498,9 +505,13 @@ class OneShotSolitaire:
 
         return moves
 
+    def is_repetition_draw(self) -> bool:
+        """Return True if any board state has occurred 3 or more times."""
+        return any(count >= REPETITION_LIMIT for count in self.state_history.values())
+
     def is_game_over(self) -> bool:
-        """Return True when no legal moves remain."""
-        return len(self.legal_moves()) == 0
+        """Return True when no legal moves remain or repetition draw."""
+        return len(self.legal_moves()) == 0 or self.is_repetition_draw()
 
     def state_hash(self) -> int:
         """Return a hashable snapshot of the full board state for cycle detection."""

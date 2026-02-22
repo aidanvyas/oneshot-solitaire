@@ -64,6 +64,7 @@ Move all 52 cards to the four foundation piles, with each foundation containing 
 ## WINNING AND LOSING
 - You win when all 52 cards have been transferred to the foundation piles in proper order.
 - The game has no explicit losing condition, but it becomes impossible to win if no further legal moves exist.
+- If the same board position occurs three times during a game, the game ends immediately as a loss (three-fold repetition).
 
 ## STRATEGY TIPS
 1. Use storage spaces wisely; they are limited but powerful resources.

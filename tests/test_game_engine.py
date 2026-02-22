@@ -712,5 +712,70 @@ class TestFullGamePlaythrough(unittest.TestCase):
         assert total_cards == FULL_DECK
 
 
+class TestThreeFoldRepetition(unittest.TestCase):
+    """Tests for three-fold repetition detection."""
+
+    def _make_reversible_board(self) -> OneShotSolitaire:
+        """Create a board where a card can shuttle between storage and tableau."""
+        game = OneShotSolitaire(game_id=1)
+        game.tableau = [[] for _ in range(7)]
+        game.foundations = [[] for _ in range(4)]
+        game.storage = [None] * 4
+        game.stock = []
+        game.waste = []
+        # Place a King on col 0 so we can move it to storage and back.
+        game.tableau[0] = [Card("♠", "K", face_up=True)]
+        # Re-initialize state_history for this controlled board.
+        game.state_history = {}
+        game.state_history[game.state_hash()] = 1
+        return game
+
+    def test_repetition_detected_after_three_occurrences(self) -> None:
+        """Three-fold repetition ends the game."""
+        game = self._make_reversible_board()
+
+        # Initial state is occurrence 1.
+        # Move K to storage (new state), move back (occurrence 2),
+        # move to storage again (same as before), move back (occurrence 3).
+        game.step(("move", ("tableau", 0), ("storage", 0)))
+        assert not game.is_repetition_draw()
+
+        game.step(("move", ("storage", 0), ("tableau", 0)))
+        assert not game.is_repetition_draw()  # occurrence 2
+
+        game.step(("move", ("tableau", 0), ("storage", 0)))
+        assert not game.is_repetition_draw()
+
+        game.step(("move", ("storage", 0), ("tableau", 0)))
+        # Initial state seen a third time — repetition draw.
+        assert game.is_repetition_draw()
+        assert game.is_game_over()
+
+    def test_no_repetition_with_two_occurrences(self) -> None:
+        """Two occurrences of the same state is not a repetition draw."""
+        game = self._make_reversible_board()
+
+        # Move out and back once — initial state seen twice.
+        game.step(("move", ("tableau", 0), ("storage", 0)))
+        game.step(("move", ("storage", 0), ("tableau", 0)))
+
+        assert not game.is_repetition_draw()
+        # Game should not be over (legal moves still exist).
+        assert not game.is_game_over()
+
+    def test_reset_clears_state_history(self) -> None:
+        """Resetting the game starts with a fresh state history."""
+        game = self._make_reversible_board()
+
+        # Shuttle the card to create history entries.
+        game.step(("move", ("tableau", 0), ("storage", 0)))
+        game.step(("move", ("storage", 0), ("tableau", 0)))
+        assert len(game.state_history) > 1
+
+        game.reset_game()
+        # After reset, only the initial state should be recorded once.
+        assert all(v == 1 for v in game.state_history.values())
+
+
 if __name__ == "__main__":
     unittest.main()

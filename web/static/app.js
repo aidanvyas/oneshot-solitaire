@@ -457,6 +457,11 @@ function showGameOver(won) {
     gameOverTitle.textContent = "Victory";
     gameOverTitle.className = "won";
     gameOverText.textContent = "All 52 cards placed on foundations.";
+  } else if (gameState.is_repetition_draw) {
+    gameOverIcon.textContent = "\u2014";
+    gameOverTitle.textContent = "Draw \u2014 Repetition";
+    gameOverTitle.className = "lost";
+    gameOverText.textContent = `The same position occurred three times. ${gameState.foundation_count} of 52 cards reached the foundations.`;
   } else {
     gameOverIcon.textContent = "\u2014";
     gameOverTitle.textContent = "No Moves Left";
