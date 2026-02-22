@@ -14,8 +14,40 @@ pub const CARDS_PER_SUIT: u8 = 13;
 /// Actually stock has exactly 24 cards, so waste can have at most 24 cards.
 pub const MAX_WASTE: usize = 24;
 
+/// Maximum legal moves from any position (practical upper bound).
+pub const MAX_MOVES: usize = 64;
+
+/// Stack-allocated list of legal moves (no heap allocation).
+pub struct MoveList {
+    moves: [Move; MAX_MOVES],
+    len: usize,
+}
+
+impl MoveList {
+    fn new() -> Self {
+        MoveList {
+            moves: [Move::Draw; MAX_MOVES],
+            len: 0,
+        }
+    }
+
+    fn push(&mut self, mv: Move) {
+        debug_assert!(self.len < MAX_MOVES);
+        self.moves[self.len] = mv;
+        self.len += 1;
+    }
+}
+
+impl std::ops::Deref for MoveList {
+    type Target = [Move];
+    fn deref(&self) -> &[Move] {
+        &self.moves[..self.len]
+    }
+}
+
 /// Visible game state — everything a human player can observe.
-#[derive(Clone, Debug)]
+/// All fields are fixed-size, so GameState is Copy (zero heap allocation).
+#[derive(Clone, Copy, Debug)]
 pub struct GameState {
     /// Face-up top card of each tableau column. NO_CARD if column is completely empty.
     pub tableau_top: [Card; NUM_TABLEAU_COLS],
@@ -29,8 +61,10 @@ pub struct GameState {
     pub foundation_top: [Card; NUM_FOUNDATION_PILES],
     /// Storage slot contents. NO_CARD if slot is empty.
     pub storage: [Card; NUM_STORAGE_SLOTS],
-    /// Full waste pile, bottom→top. Last element is the currently visible waste top.
-    pub waste: Vec<Card>,
+    /// Full waste pile, bottom→top. Only waste[..waste_len] is valid.
+    pub waste: [Card; MAX_WASTE],
+    /// Number of cards in the waste pile.
+    pub waste_len: u8,
     /// Number of cards remaining in the stock (hidden).
     pub stock_count: u8,
 }
@@ -51,15 +85,43 @@ impl GameState {
     }
 
     /// The visible waste top card, or NO_CARD if waste is empty.
+    #[inline]
     pub fn waste_top(&self) -> Card {
-        self.waste.last().copied().unwrap_or(NO_CARD)
+        if self.waste_len == 0 { NO_CARD } else { self.waste[self.waste_len as usize - 1] }
+    }
+
+    /// Push a card onto the waste pile.
+    #[inline]
+    pub fn waste_push(&mut self, card: Card) {
+        self.waste[self.waste_len as usize] = card;
+        self.waste_len += 1;
+    }
+
+    /// Pop the top card from the waste pile.
+    #[inline]
+    pub fn waste_pop(&mut self) -> Card {
+        debug_assert!(self.waste_len > 0);
+        self.waste_len -= 1;
+        self.waste[self.waste_len as usize]
+    }
+
+    /// True if the waste pile is empty.
+    #[inline]
+    pub fn waste_is_empty(&self) -> bool {
+        self.waste_len == 0
+    }
+
+    /// Slice of valid waste cards.
+    #[inline]
+    pub fn waste_slice(&self) -> &[Card] {
+        &self.waste[..self.waste_len as usize]
     }
 }
 
 /// Belief state: visible state + the pool of cards whose identity is unknown.
 /// unknown_pool is the set of all cards in the stock + face-down tableau positions.
 /// Invariant: unknown_pool.count_ones() == stock_count + sum(tableau_hidden_count)
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct BeliefState {
     pub visible: GameState,
     /// Bit set of all cards not yet revealed to the player.
@@ -95,11 +157,11 @@ impl BeliefState {
     pub fn is_endgame(&self) -> bool {
         let gs = &self.visible;
         if gs.stock_count > 0 { return false; }
-        if gs.waste.len() > 1 { return false; }
+        if gs.waste_len > 1 { return false; }
         if !gs.tableau_hidden_count.iter().all(|&c| c == 0) { return false; }
         // Must have at least one card outside foundation (otherwise it's a
         // dead position, not an endgame). is_won() is checked separately.
-        !gs.waste.is_empty()
+        !gs.waste_is_empty()
             || gs.tableau_top.iter().any(|&c| c != NO_CARD)
             || gs.storage.iter().any(|&c| c != NO_CARD)
     }
@@ -115,8 +177,8 @@ impl BeliefState {
     }
 
     /// Generate all legal moves from this belief state (mirrors Python engine exactly).
-    pub fn legal_moves(&self) -> Vec<Move> {
-        let mut moves = Vec::new();
+    pub fn legal_moves(&self) -> MoveList {
+        let mut moves = MoveList::new();
         let gs = &self.visible;
 
         // Order: foundation moves first (best), then tableau/storage moves, draw last.
@@ -282,7 +344,7 @@ pub fn build_unknown_pool(gs: &GameState) -> CardSet {
     }
 
     // Full waste pile — all cards are visible.
-    for &c in &gs.waste {
+    for &c in gs.waste_slice() {
         known = cardset_add(known, c);
     }
 
@@ -317,7 +379,8 @@ mod tests {
             tableau_empty: [true; NUM_TABLEAU_COLS],
             foundation_top: [NO_CARD; NUM_FOUNDATION_PILES],
             storage: [NO_CARD; NUM_STORAGE_SLOTS],
-            waste: vec![],
+            waste: [NO_CARD; MAX_WASTE],
+            waste_len: 0,
             stock_count: 52,
         }
     }
@@ -336,7 +399,7 @@ mod tests {
         let mut gs = empty_game_state();
         // Put SA on waste
         let sa = make_card(SUIT_SPADES, 0);
-        gs.waste.push(sa);
+        gs.waste_push(sa);
         gs.stock_count = 51;
         // Put H2 on tableau top col 0
         let h2 = make_card(SUIT_HEARTS, 1);
@@ -435,7 +498,8 @@ mod tests {
         gs.stock_count = 5;
         let belief = BeliefState::from_game_state(gs);
         let moves = belief.legal_moves();
-        assert_eq!(moves, vec![Move::Draw]);
+        assert_eq!(moves.len(), 1);
+        assert_eq!(moves[0], Move::Draw);
     }
 
     #[test]
@@ -452,7 +516,7 @@ mod tests {
         let mut gs = empty_game_state();
         gs.stock_count = 0;
         let sa = make_card(SUIT_SPADES, 0);
-        gs.waste.push(sa);
+        gs.waste_push(sa);
         let belief = BeliefState::from_game_state(gs);
         let moves = belief.legal_moves();
         assert!(moves.contains(&Move::WasteToFoundation));
@@ -463,7 +527,7 @@ mod tests {
         let mut gs = empty_game_state();
         gs.stock_count = 0;
         let hq = make_card(SUIT_HEARTS, 11); // Hearts Queen — won't go to foundation or tableau
-        gs.waste.push(hq);
+        gs.waste_push(hq);
         // All storage empty
         let belief = BeliefState::from_game_state(gs);
         let moves = belief.legal_moves();

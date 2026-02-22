@@ -108,10 +108,10 @@ impl ZobristTable {
         let mut h: u64 = 0;
 
         // Waste pile
-        if gs.waste.is_empty() {
+        if gs.waste_len == 0 {
             h ^= self.waste_empty;
         } else {
-            for (pos, &card) in gs.waste.iter().enumerate() {
+            for (pos, &card) in gs.waste[..gs.waste_len as usize].iter().enumerate() {
                 h ^= self.waste_pile[pos][card_index(card)];
             }
         }
@@ -168,7 +168,8 @@ mod tests {
             tableau_empty: [true; NUM_TABLEAU_COLS],
             foundation_top: [NO_CARD; NUM_FOUNDATION_PILES],
             storage: [NO_CARD; NUM_STORAGE_SLOTS],
-            waste: vec![],
+            waste: [NO_CARD; MAX_WASTE],
+            waste_len: 0,
             stock_count: 0,
         }
     }
@@ -197,11 +198,11 @@ mod tests {
         let zt = ZobristTable::new();
         let mut gs1 = empty_gs();
         let mut gs2 = empty_gs();
-        gs2.waste.push(make_card(SUIT_SPADES, 0));
+        gs2.waste_push(make_card(SUIT_SPADES, 0));
         assert_ne!(zt.hash_state(&gs1), zt.hash_state(&gs2));
         // Also: empty waste uses waste_empty, non-empty uses positional hashes
         let h_empty = zt.hash_state(&gs1);
-        gs1.waste.push(make_card(SUIT_HEARTS, 5));
+        gs1.waste_push(make_card(SUIT_HEARTS, 5));
         let h_nonempty = zt.hash_state(&gs1);
         assert_ne!(h_empty, h_nonempty);
     }
@@ -215,12 +216,12 @@ mod tests {
         let h2 = make_card(SUIT_HEARTS, 1);
 
         let mut gs1 = empty_gs();
-        gs1.waste.push(sa);
-        gs1.waste.push(h2);
+        gs1.waste_push(sa);
+        gs1.waste_push(h2);
 
         let mut gs2 = empty_gs();
-        gs2.waste.push(h2);
-        gs2.waste.push(sa);
+        gs2.waste_push(h2);
+        gs2.waste_push(sa);
 
         assert_ne!(zt.hash_state(&gs1), zt.hash_state(&gs2));
     }

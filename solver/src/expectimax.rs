@@ -104,7 +104,7 @@ fn max_node_root(belief: &BeliefState, hash: u64, ctx: &mut SearchContext) -> (O
     let mut best_move: Option<Move> = moves.first().copied();
     let mut best_prob: f32 = 0.0;
 
-    for &mv in &moves {
+    for &mv in moves.iter() {
         if ctx.timed_out || Instant::now() >= ctx.deadline {
             ctx.timed_out = true;
             break;
@@ -179,7 +179,7 @@ fn max_node(belief: &BeliefState, hash: u64, depth: u16, alpha: f32, ctx: &mut S
 
     let mut local_best: f32 = 0.0;
 
-    for &mv in &moves {
+    for &mv in moves.iter() {
         if ctx.timed_out {
             break;
         }
@@ -221,7 +221,7 @@ fn eval_move(
         ApplyResult::Complete(new_belief, _) => {
             // Auto-draw: if waste is empty and stock has cards, chain a draw.
             // This mirrors the web UI where playing a waste card auto-draws the next.
-            if new_belief.visible.waste.is_empty() && new_belief.visible.stock_count > 0 {
+            if new_belief.visible.waste_is_empty() && new_belief.visible.stock_count > 0 {
                 let draw_result = apply_move(&new_belief, Move::Draw, 0);
                 match draw_result {
                     ApplyResult::NeedsDraw { partial, .. } => {
@@ -259,13 +259,12 @@ fn chance_node_draw(
         return 0.0;
     }
 
-    let cards: Vec<Card> = cardset_iter(pool).collect();
     let n_f64 = n as f64;
     let alpha_f64 = alpha as f64;
     let mut win_sum: f64 = 0.0;
     let mut cards_done: u32 = 0;
 
-    for &drawn_card in &cards {
+    for drawn_card in cardset_iter(pool) {
         if ctx.timed_out {
             break;
         }
@@ -319,13 +318,12 @@ fn chance_node_flip(
         return 0.0;
     }
 
-    let cards: Vec<Card> = cardset_iter(pool).collect();
     let n_f64 = n as f64;
     let alpha_f64 = alpha as f64;
     let mut win_sum: f64 = 0.0;
     let mut cards_done: u32 = 0;
 
-    for &flipped_card in &cards {
+    for flipped_card in cardset_iter(pool) {
         if ctx.timed_out {
             break;
         }
@@ -369,7 +367,7 @@ fn depth_limit_heuristic(belief: &BeliefState) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::{GameState, NUM_FOUNDATION_PILES, NUM_STORAGE_SLOTS, NUM_TABLEAU_COLS};
+    use crate::state::{GameState, MAX_WASTE, NUM_FOUNDATION_PILES, NUM_STORAGE_SLOTS, NUM_TABLEAU_COLS};
     use crate::ttable::TranspositionTable;
 
     fn empty_gs() -> GameState {
@@ -379,7 +377,8 @@ mod tests {
             tableau_empty: [true; NUM_TABLEAU_COLS],
             foundation_top: [NO_CARD; NUM_FOUNDATION_PILES],
             storage: [NO_CARD; NUM_STORAGE_SLOTS],
-            waste: vec![],
+            waste: [NO_CARD; MAX_WASTE],
+            waste_len: 0,
             stock_count: 0,
         }
     }
@@ -420,7 +419,7 @@ mod tests {
         gs.foundation_top[2] = make_card(SUIT_DIAMONDS, 12); // DK
         gs.foundation_top[3] = make_card(SUIT_CLUBS, 12); // CK
         let sk = make_card(SUIT_SPADES, 12);
-        gs.waste.push(sk);
+        gs.waste_push(sk);
         gs.stock_count = 0;
         let belief = BeliefState::from_game_state(gs);
         let zt = ZobristTable::new();

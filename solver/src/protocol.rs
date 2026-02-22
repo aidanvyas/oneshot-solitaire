@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use crate::card::*;
 use crate::moves::Move;
-use crate::state::{GameState, NUM_FOUNDATION_PILES, NUM_STORAGE_SLOTS, NUM_TABLEAU_COLS};
+use crate::state::{GameState, MAX_WASTE, NUM_FOUNDATION_PILES, NUM_STORAGE_SLOTS, NUM_TABLEAU_COLS};
 
 // ── Input types ───────────────────────────────────────────────────────────────
 
@@ -124,10 +124,14 @@ pub fn parse_game_state(json: &GameStateJson) -> Result<GameState, String> {
     }
 
     // Waste pile
-    let mut waste = Vec::with_capacity(json.waste.len());
-    for s in &json.waste {
-        waste.push(parse_card(s).ok_or_else(|| format!("Invalid waste card: {}", s))?);
+    if json.waste.len() > MAX_WASTE {
+        return Err(format!("Waste pile too large: {} > {}", json.waste.len(), MAX_WASTE));
     }
+    let mut waste = [NO_CARD; MAX_WASTE];
+    for (i, s) in json.waste.iter().enumerate() {
+        waste[i] = parse_card(s).ok_or_else(|| format!("Invalid waste card: {}", s))?;
+    }
+    let waste_len = json.waste.len() as u8;
 
     Ok(GameState {
         tableau_top,
@@ -136,6 +140,7 @@ pub fn parse_game_state(json: &GameStateJson) -> Result<GameState, String> {
         foundation_top,
         storage,
         waste,
+        waste_len,
         stock_count: json.stock_count,
     })
 }
@@ -206,7 +211,7 @@ mod tests {
         let json = make_request_json(24, vec![]);
         let gs = parse_game_state(&json).unwrap();
         assert_eq!(gs.stock_count, 24);
-        assert!(gs.waste.is_empty());
+        assert!(gs.waste_is_empty());
         assert!(gs.foundation_top.iter().all(|&t| t == NO_CARD));
     }
 
@@ -214,7 +219,7 @@ mod tests {
     fn parse_waste() {
         let json = make_request_json(0, vec!["SA", "H10"]);
         let gs = parse_game_state(&json).unwrap();
-        assert_eq!(gs.waste.len(), 2);
+        assert_eq!(gs.waste_len, 2);
         assert_eq!(gs.waste[0], parse_card("SA").unwrap());
         assert_eq!(gs.waste[1], parse_card("H10").unwrap());
     }
@@ -239,7 +244,7 @@ mod tests {
     }
 
     fn empty_gs() -> GameState {
-        use crate::state::{NUM_FOUNDATION_PILES, NUM_STORAGE_SLOTS, NUM_TABLEAU_COLS};
+        use crate::state::{MAX_WASTE, NUM_FOUNDATION_PILES, NUM_STORAGE_SLOTS, NUM_TABLEAU_COLS};
         use crate::card::NO_CARD;
         GameState {
             tableau_top: [NO_CARD; NUM_TABLEAU_COLS],
@@ -247,7 +252,8 @@ mod tests {
             tableau_empty: [true; NUM_TABLEAU_COLS],
             foundation_top: [NO_CARD; NUM_FOUNDATION_PILES],
             storage: [NO_CARD; NUM_STORAGE_SLOTS],
-            waste: vec![],
+            waste: [NO_CARD; MAX_WASTE],
+            waste_len: 0,
             stock_count: 0,
         }
     }

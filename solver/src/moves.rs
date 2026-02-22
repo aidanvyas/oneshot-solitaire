@@ -68,7 +68,7 @@ fn apply_draw(belief: &BeliefState, hash: u64) -> ApplyResult {
 fn apply_waste_to_foundation(belief: &BeliefState, hash: u64) -> ApplyResult {
     let mut b = belief.clone();
     let gs = &mut b.visible;
-    let card = gs.waste.pop().expect("waste non-empty");
+    let card = gs.waste_pop();
     let suit = card_suit(card);
     gs.foundation_top[suit as usize] = card;
     ApplyResult::Complete(b, hash)
@@ -77,7 +77,7 @@ fn apply_waste_to_foundation(belief: &BeliefState, hash: u64) -> ApplyResult {
 fn apply_waste_to_tableau(belief: &BeliefState, dest_col: u8, hash: u64) -> ApplyResult {
     let mut b = belief.clone();
     let gs = &mut b.visible;
-    let card = gs.waste.pop().expect("waste non-empty");
+    let card = gs.waste_pop();
     place_on_tableau(gs, card, dest_col);
     ApplyResult::Complete(b, hash)
 }
@@ -85,7 +85,7 @@ fn apply_waste_to_tableau(belief: &BeliefState, dest_col: u8, hash: u64) -> Appl
 fn apply_waste_to_storage(belief: &BeliefState, slot: u8, hash: u64) -> ApplyResult {
     let mut b = belief.clone();
     let gs = &mut b.visible;
-    let card = gs.waste.pop().expect("waste non-empty");
+    let card = gs.waste_pop();
     debug_assert_eq!(gs.storage[slot as usize], NO_CARD);
     gs.storage[slot as usize] = card;
     ApplyResult::Complete(b, hash)
@@ -210,7 +210,7 @@ fn remove_tableau_top(gs: &mut GameState, col: u8, _pool: &mut CardSet, hash: u6
 pub fn assign_drawn_card(partial: &BeliefState, drawn_card: Card, hash: u64) -> (BeliefState, u64) {
     debug_assert!(cardset_contains(partial.unknown_pool, drawn_card));
     let mut b = partial.clone();
-    b.visible.waste.push(drawn_card);
+    b.visible.waste_push(drawn_card);
     b.unknown_pool = cardset_remove(b.unknown_pool, drawn_card);
     b.check_invariant();
     (b, hash)
@@ -247,7 +247,8 @@ mod tests {
             tableau_empty: [true; NUM_TABLEAU_COLS],
             foundation_top: [NO_CARD; NUM_FOUNDATION_PILES],
             storage: [NO_CARD; NUM_STORAGE_SLOTS],
-            waste: vec![],
+            waste: [NO_CARD; MAX_WASTE],
+            waste_len: 0,
             stock_count: 0,
         }
     }
@@ -270,12 +271,12 @@ mod tests {
     fn waste_to_foundation_complete() {
         let mut gs = empty_gs();
         let sa = make_card(SUIT_SPADES, 0);
-        gs.waste.push(sa);
+        gs.waste_push(sa);
         let belief = make_belief(gs);
         let result = apply_move(&belief, Move::WasteToFoundation, 0);
         match result {
             ApplyResult::Complete(new_belief, _) => {
-                assert!(new_belief.visible.waste.is_empty());
+                assert!(new_belief.visible.waste_is_empty());
                 assert_eq!(new_belief.visible.foundation_top[SUIT_SPADES as usize], sa);
             }
             _ => panic!("Expected Complete"),
@@ -286,12 +287,12 @@ mod tests {
     fn waste_to_tableau_complete() {
         let mut gs = empty_gs();
         let sk = make_card(SUIT_SPADES, 12); // King → can go to empty col
-        gs.waste.push(sk);
+        gs.waste_push(sk);
         let belief = make_belief(gs);
         let result = apply_move(&belief, Move::WasteToTableau(0), 0);
         match result {
             ApplyResult::Complete(new_belief, _) => {
-                assert!(new_belief.visible.waste.is_empty());
+                assert!(new_belief.visible.waste_is_empty());
                 assert_eq!(new_belief.visible.tableau_top[0], sk);
                 assert!(!new_belief.visible.tableau_empty[0]);
             }
