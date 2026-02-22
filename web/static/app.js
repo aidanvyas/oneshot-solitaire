@@ -17,8 +17,6 @@ let gameId = null;
 let gameState = null;
 let autoFinishInterval = null;
 let statusTimer = null;
-let autoPlayEnabled = true;
-
 // --- Drag state ---
 let dragCards = [];
 let dragEls = [];
@@ -65,8 +63,6 @@ async function newGame(dealId) {
   stopAutoFinish();
   stopConfetti();
   hideGameOver();
-  autoPlayEnabled = true;
-  updateAutoButton();
   const body = dealId != null ? { game_id: dealId } : {};
   const data = await api("POST", "/api/new-game", body);
   gameId = data.game_id;
@@ -108,7 +104,7 @@ function checkGameEnd() {
     startConfetti();
   } else if (gameState.is_over) {
     showGameOver(false);
-  } else if (gameState.is_endgame && autoPlayEnabled) {
+  } else if (gameState.is_endgame) {
     startAutoFinish();
   }
 }
@@ -410,22 +406,10 @@ function executeDrop(target) {
 
 // --- Auto-draw ---
 function maybeAutoDraw() {
-  if (!autoPlayEnabled || !gameState) return;
+  if (!gameState) return;
   if (gameState.waste_count === 0 && gameState.stock_count > 0) {
     makeMove({ type: "draw" });
   }
-}
-
-function updateAutoButton() {
-  const btn = document.getElementById("btn-auto");
-  if (!btn) return;
-  btn.className = autoPlayEnabled ? "toggle-on" : "toggle-off";
-}
-
-function toggleAutoPlay() {
-  autoPlayEnabled = !autoPlayEnabled;
-  updateAutoButton();
-  if (!autoPlayEnabled) stopAutoFinish();
 }
 
 // --- Auto-finish ---
@@ -531,7 +515,6 @@ document.getElementById("btn-rules").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("btn-auto").addEventListener("click", toggleAutoPlay);
 document.getElementById("btn-new").addEventListener("click", () => newGame());
 
 // --- Simple markdown to HTML ---
@@ -603,8 +586,6 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "d" || e.key === "D") {
     if (gameState && gameState.stock_count > 0) makeMove({ type: "draw" });
-  } else if (e.key === "a" || e.key === "A") {
-    toggleAutoPlay();
   } else if (e.key === "r" || e.key === "R") {
     resetGame();
   }

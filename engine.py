@@ -83,6 +83,11 @@ class OneShotSolitaire:
 
         self.stock = deck
 
+        # Auto-draw the first card so the game starts with a playable waste.
+        card = self.stock.pop()
+        card.face_up = True
+        self.waste.append(card)
+
     def is_valid_tableau_move(self, card: Card, destination_col: int) -> bool:
         """Check if a card can be placed on a tableau column."""
         if destination_col < 0 or destination_col >= NUM_TABLEAU_COLS:
@@ -407,6 +412,15 @@ class OneShotSolitaire:
                 break
         return moves
 
+    def _is_pointless_king_move(self, src_col: int, dest_col: int) -> bool:
+        """Return True if moving a lone king to an empty column (no progress)."""
+        card = self.tableau[src_col][-1]
+        return (
+            card.value == "K"
+            and not self.tableau[dest_col]
+            and len(self.tableau[src_col]) == 1
+        )
+
     def _tableau_moves(self) -> list:
         """Collect legal moves originating from tableau columns."""
         moves = []
@@ -416,26 +430,39 @@ class OneShotSolitaire:
             card = self.tableau[src_col][-1]
             if not card.face_up:
                 continue
+            self._collect_tableau_col_moves(moves, card, src_col)
+        return moves
 
-            foundation_idx = SUITS.index(card.suit)
-            if self.is_valid_foundation_move(card, foundation_idx):
-                moves.append(
-                    ("move", ("tableau", src_col), ("foundation", foundation_idx)),
-                )
-
-            moves.extend(
-                ("move", ("tableau", src_col), ("tableau", dest_col))
-                for dest_col in range(NUM_TABLEAU_COLS)
-                if src_col != dest_col and self.is_valid_tableau_move(card, dest_col)
+    def _collect_tableau_col_moves(
+        self,
+        moves: list,
+        card: Card,
+        src_col: int,
+    ) -> None:
+        """Append all legal moves for a single tableau column's top card."""
+        foundation_idx = SUITS.index(card.suit)
+        if self.is_valid_foundation_move(card, foundation_idx):
+            moves.append(
+                ("move", ("tableau", src_col), ("foundation", foundation_idx)),
             )
 
-            for slot in range(NUM_STORAGE_SLOTS):
-                if self.storage[slot] is None:
-                    moves.append(
-                        ("move", ("tableau", src_col), ("storage", slot)),
-                    )
-                    break
-        return moves
+        for dest_col in range(NUM_TABLEAU_COLS):
+            if src_col == dest_col:
+                continue
+            if not self.is_valid_tableau_move(card, dest_col):
+                continue
+            if self._is_pointless_king_move(src_col, dest_col):
+                continue
+            moves.append(
+                ("move", ("tableau", src_col), ("tableau", dest_col)),
+            )
+
+        for slot in range(NUM_STORAGE_SLOTS):
+            if self.storage[slot] is None:
+                moves.append(
+                    ("move", ("tableau", src_col), ("storage", slot)),
+                )
+                break
 
     def _storage_moves(self) -> list:
         """Collect legal moves originating from storage slots."""
@@ -489,10 +516,13 @@ class OneShotSolitaire:
         return hash(tuple(parts))
 
     def is_endgame(self) -> bool:
-        """Return True when stock is empty and all tableau cards are face-up.
+        """Return True when the game is trivially winnable.
 
-        In the GUI, this triggers the auto-finish animation.
+        Conditions: stock empty, all tableau cards face-up, and waste has at
+        most one card (so no buried inaccessible cards remain).
         """
         if self.stock:
+            return False
+        if len(self.waste) > 1:
             return False
         return all(card.face_up for col in self.tableau for card in col)

@@ -7,7 +7,7 @@ from unittest.mock import patch
 from engine import SUITS, VALUES, Card, OneShotSolitaire
 
 INITIAL_TABLEAU_CARDS = 28
-INITIAL_STOCK_SIZE = 24
+INITIAL_STOCK_SIZE = 23
 FULL_DECK = 52
 VALUE_INDEX_5 = 4
 VALUE_INDEX_K = 12
@@ -512,13 +512,12 @@ class TestResetGame(unittest.TestCase):
         reset_stock = [(c.suit, c.value) for c in game.stock]
         assert initial_stock == reset_stock
 
-    def test_reset_clears_waste(self) -> None:
-        """Reset empties the waste pile."""
+    def test_reset_starts_with_one_waste_card(self) -> None:
+        """Reset re-deals and auto-draws the first card."""
         game = OneShotSolitaire(game_id=42)
         game.step("draw")
-        assert len(game.waste) > 0
         game.reset_game()
-        assert len(game.waste) == 0
+        assert len(game.waste) == 1
 
 
 class TestIsGameWon(unittest.TestCase):

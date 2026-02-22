@@ -180,18 +180,6 @@ body::after {
   transform: scale(0.97);
 }
 
-#btn-auto.toggle-on {
-  background: rgba(196, 163, 90, 0.18);
-  border-color: var(--gold);
-  color: var(--gold-bright);
-}
-
-#btn-auto.toggle-off {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-muted);
-}
-
 /* --- Top Row --- */
 #top-row {
   display: flex;
